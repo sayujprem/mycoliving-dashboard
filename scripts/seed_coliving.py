@@ -22,7 +22,9 @@ ACTIVO = {
     "unidades_totales": 5,
     "comision_administrador_pct": 10.0,
     "moneda": "COP",
-    "ubicacion": "Barrio Granada, Armenia, Quindío",
+    # La dirección exacta se escribe desde /config/activo, no aquí: este archivo está
+    # versionado en un repositorio público y el resto de la configuración no lo está.
+    "ubicacion": "Armenia, Quindío",
     "notas": (
         "5 apartaestudios con baño privado. Zonas comunes: cocina, sala-comedor, coworking, "
         "patio de ropas, patio interior. Contratos de 6 a 12 meses, no turístico."

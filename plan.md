@@ -60,7 +60,7 @@ de depender del contrato.
 
 `ANTHROPIC_API_KEY` guardada en `.env` (gitignored, `chmod 600`, `python-dotenv` la carga).
 La key es identity-linked: se agregó `ANTHROPIC_WORKSPACE_ID` (config → dominio → motor,
-como header `anthropic-workspace-id`); workspace `wrkspc_...` en `.env`.
+como header `anthropic-workspace-id`); el id del workspace (`wrkspc_...`) vive en `.env`.
 `conftest.py` mantiene la suite sin gastar créditos salvo `MYCOLIVING_TEST_REAL_API=1`.
 **Una generación real produjo asesoría concreta** (nombra la cifra, la causa, la reserva
 agotada, el horizonte) con la advertencia de alcance en la nota fiscal. Tarea 13 cerrada.

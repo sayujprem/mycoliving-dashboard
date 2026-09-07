@@ -6,6 +6,47 @@ calcula un diagnóstico determinístico (resultado en pesos, ocupación real vs.
 semáforos, brecha vs. la meta de distribución, estado de la reserva, recuperación del capex),
 avisa de vencimientos, y genera un informe mensual de asesoría financiera y fiscal.
 
+## El problema que resuelve
+
+En rent-to-rent el negocio es un *spread*: un canon fijo que se le paga a la propietaria
+contra un recaudo variable que depende de cuántas unidades estén ocupadas. Cada mes llega el
+informe de la inmobiliaria, se lee una vez y se archiva. Nadie dice si el mes fue bueno, y
+cuando el spread se pone negativo uno se entera tres meses después, con la reserva ya
+consumida.
+
+La pieza central es la **ocupación de equilibrio**: cuántas unidades hay que tener
+arrendadas para no poner plata ese mes. Ese número no aparece en ningún informe.
+
+## Dos decisiones de diseño que vale la pena mirar
+
+**El semáforo no lo decide un modelo de lenguaje.** El color sale de reglas determinísticas
+y de umbrales que define el usuario, con la explicación armada por plantillas de texto. La
+IA se usa en un solo punto — redactar la asesoría del mes — y si el API falla, el
+diagnóstico se muestra igual. Un juicio financiero que cambia de opinión entre corridas no
+sirve para decidir.
+
+**Frontera `motor/` y `dominio/`.** `motor/` no sabe qué tipo de activo es ni en qué país
+opera: trabaja con números (resultado del periodo, brecha, reserva, capex, fechas).
+`dominio/` tiene lo que sí es específico: subarriendo de inmuebles y tributación colombiana,
+con un único archivo (`dominio/fiscal.py`) que concentra todo el conocimiento fiscal. Todas
+las tablas llevan `activo_id` aunque hoy solo exista un activo.
+
+## Cómo probarlo sin datos reales
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python -m scripts.demo cargar      # 6 meses de ejemplo que recorren los tres colores
+uvicorn main:app
+```
+
+La demo carga seis meses que van de verde a rojo, agotan el fondo de reserva y disparan la
+regla de vacancia, más capex y recordatorios en sus tres estados. El panel avisa que son
+datos de ejemplo y se quitan con `python -m scripts.demo limpiar` o con el botón del banner.
+
+Stack: Python, FastAPI, SQLite y Jinja2 renderizado en servidor. Sin frameworks de
+JavaScript. Corre en local, con costo de infraestructura cero.
+
 Documentos de referencia: `spec.md`, `plan.md`, `evaluacion-negocio-producto.md`,
 `ajustes-al-spec.md`.
 
