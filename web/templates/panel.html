@@ -2,6 +2,18 @@
 {% import "_macros.html" as ui %}
 {% block content %}
 
+{% if demo %}
+<div class="banner-demo">
+  <div>
+    <strong>Datos de ejemplo.</strong>
+    Lo que ves no es tu operación real: se cargó el {{ demo.fecha }} para probar la app.
+  </div>
+  <form method="post" action="/demo/limpiar" style="margin:0">
+    <button class="btn btn--ghost" type="submit" style="padding:7px 14px;font-size:12px">Quitar los datos de ejemplo</button>
+  </form>
+</div>
+{% endif %}
+
 {% if not activo %}
   <section style="max-width:620px">
     <span class="eyebrow">Puesta en marcha</span>

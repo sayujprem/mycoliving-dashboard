@@ -67,6 +67,14 @@ def set_configuracion(activo_id: int, clave: str, valor) -> None:
         )
 
 
+def borrar_configuracion(activo_id: int, clave: str) -> None:
+    with db_cursor() as cur:
+        cur.execute(
+            "DELETE FROM configuracion_dominio WHERE activo_id = ? AND clave = ?",
+            (activo_id, clave),
+        )
+
+
 def _ultimo(tabla: str, activo_id: int) -> sqlite3.Row | None:
     conn = get_connection()
     try:

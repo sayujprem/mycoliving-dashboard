@@ -41,6 +41,7 @@ from dominio.configuracion import (
 )
 from dominio.configuracion import horizonte_meses as horizonte_meses_config
 from dominio.consolidado import consolidar_historico
+from dominio.demo import estado_demo, limpiar_demo
 from dominio.diagnostico import diagnostico_mes
 from dominio.recordatorios import calcular_proxima_fecha, clasificar_recordatorios
 from dominio.reserva import recalcular_reserva
@@ -92,10 +93,13 @@ def panel(request: Request) -> HTMLResponse:
         return templates.TemplateResponse(
             request, "panel.html", {"active": "panel", "activo": None}
         )
+    demo = estado_demo(activo["id"])
     meses = meses_registrados(activo["id"])
     if not meses:
         return templates.TemplateResponse(
-            request, "panel.html", {"active": "panel", "activo": activo, "sin_historico": True}
+            request,
+            "panel.html",
+            {"active": "panel", "activo": activo, "sin_historico": True, "demo": demo},
         )
     try:
         anio = int(request.query_params.get("anio") or meses[0][0])
@@ -115,8 +119,17 @@ def panel(request: Request) -> HTMLResponse:
             # Estado de navegación, no de dominio: por eso se arma aquí y no en panel_mes().
             # Va después del spread para que nada lo pise.
             "error_asesoria": request.query_params.get("error_asesoria"),
+            "demo": demo,
         },
     )
+
+
+@router.post("/demo/limpiar", response_class=HTMLResponse)
+def demo_limpiar(request: Request):
+    activo = get_activo()
+    if activo:
+        limpiar_demo(activo["id"])
+    return RedirectResponse("/", status_code=303)
 
 
 @router.get("/config", response_class=HTMLResponse)
