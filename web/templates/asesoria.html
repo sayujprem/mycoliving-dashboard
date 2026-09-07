@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block content %}
+<section style="max-width:720px">
+  <span class="eyebrow">Asesoría · {{ mes_label }}</span>
+  <h1 style="font-size:clamp(26px,4vw,38px);margin:14px 0 18px">Informe del mes</h1>
+
+  <div class="card card--dark" style="padding:clamp(20px,3vw,28px)">
+    <div class="row" style="gap:9px;margin-bottom:12px">
+      <span class="dot dot--{{ asesoria.semaforo_resultado or 'amarillo' }}"></span>
+      <span class="dot dot--{{ asesoria.semaforo_ocupacion or 'amarillo' }}"></span>
+      <span class="mono" style="font-size:11.5px;letter-spacing:.1em;color:var(--panel-ink-dim)">
+        RESULTADO {{ activo.moneda }} {{ "{:,.0f}".format(asesoria.resultado_mes) }}
+        · EQUILIBRIO {{ asesoria.ocupacion_equilibrio }}
+      </span>
+    </div>
+    <div style="white-space:pre-line;font-size:15px;line-height:1.6;color:var(--panel-ink)">{{ asesoria.texto_asesoria }}</div>
+  </div>
+
+  <div class="card" style="padding:clamp(20px,3vw,28px);margin-top:14px;border-left:3px solid var(--accent)">
+    <span class="eyebrow">Nota fiscal</span>
+    <div style="white-space:pre-line;font-size:14.5px;line-height:1.6;margin-top:8px">{{ asesoria.texto_fiscal }}</div>
+  </div>
+
+  <div class="row" style="margin-top:18px">
+    <form method="post" action="/asesoria/{{ asesoria.anio }}/{{ asesoria.mes }}" style="display:inline">
+      <button class="btn btn--ghost" type="submit">Regenerar</button>
+    </form>
+    <a class="btn btn--ghost" href="/historico">Volver al histórico</a>
+  </div>
+  <p class="muted" style="font-size:12px;margin-top:10px">Generada el {{ asesoria.fecha_generacion }}.</p>
+</section>
+{% endblock %}

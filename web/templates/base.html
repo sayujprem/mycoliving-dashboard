@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ titulo | default("MyColiving Dashboard") }}{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="app-header">
+    <a class="brand" href="/">
+      <span class="brand-mark"><span></span></span>
+      <span class="brand-name">My Coliving Dashboard</span>
+    </a>
+    <nav class="app-nav">
+      <a href="/" class="{{ 'is-active' if active == 'panel' }}">Panel</a>
+      <a href="/registro" class="{{ 'is-active' if active == 'registro' }}">Registrar mes</a>
+      <a href="/historico" class="{{ 'is-active' if active == 'historico' }}">Histórico</a>
+      <a href="/config" class="{{ 'is-active' if active == 'config' }}">Configuración</a>
+    </nav>
+    <span class="eyebrow">{% block header_aside %}Oficina familiar · un solo activo{% endblock %}</span>
+  </header>
+  <main class="app-main">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

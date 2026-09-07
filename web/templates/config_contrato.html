@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block content %}
+<section style="max-width:640px">
+  <span class="eyebrow">Configuración · Contrato maestro</span>
+  <h1 style="font-size:clamp(26px,4vw,38px);margin:14px 0 8px">Contrato maestro</h1>
+  <p class="muted" style="margin-bottom:18px">
+    El arriendo que le pagas a la propietaria. Es el costo fijo que se debe todos los meses,
+    tengas las unidades llenas o vacías.
+  </p>
+
+  {% for e in errores %}{{ ui.alert(e, "error") }}{% endfor %}
+
+  <form method="post" action="/config/contrato" class="card" style="padding:clamp(20px,3vw,28px)">
+    <div class="field">
+      <label for="canon_mensual">Canon mensual</label>
+      <input type="number" step="0.01" min="0" id="canon_mensual" name="canon_mensual"
+             value="{{ contrato.canon_mensual if contrato else '' }}" required>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label for="fecha_inicio">Inicio</label>
+        <input type="date" id="fecha_inicio" name="fecha_inicio"
+               value="{{ contrato.fecha_inicio if contrato else '' }}" required>
+      </div>
+      <div class="field">
+        <label for="fecha_vencimiento">Vencimiento</label>
+        <input type="date" id="fecha_vencimiento" name="fecha_vencimiento"
+               value="{{ contrato.fecha_vencimiento if contrato else '' }}" required>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label for="vigencia_meses">Vigencia (meses)</label>
+        <input type="number" step="1" min="1" id="vigencia_meses" name="vigencia_meses"
+               value="{{ contrato.vigencia_meses if contrato else '' }}" required>
+      </div>
+      <div class="field">
+        <label for="ventana_preaviso_dias">Ventana de preaviso (días)</label>
+        <input type="number" step="1" min="0" id="ventana_preaviso_dias" name="ventana_preaviso_dias"
+               value="{{ contrato.ventana_preaviso_dias if contrato else '0' }}">
+      </div>
+    </div>
+    <div class="field">
+      <label for="regla_reajuste">Regla de reajuste</label>
+      <input type="text" id="regla_reajuste" name="regla_reajuste"
+             value="{{ contrato.regla_reajuste if contrato else '' }}"
+             placeholder="Ej: IPC del año anterior, en el aniversario del contrato.">
+    </div>
+    <div class="row">
+      <button class="btn" type="submit">Guardar</button>
+      <a class="btn btn--ghost" href="/config">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

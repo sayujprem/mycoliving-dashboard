@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block content %}
+<section>
+  <div class="row" style="justify-content:space-between;align-items:baseline">
+    <div>
+      <span class="eyebrow">Panorama consolidado</span>
+      <h1 style="font-size:clamp(26px,4vw,38px);margin:14px 0 0">{{ activo.nombre }}</h1>
+    </div>
+    <a class="btn" href="/registro">Registrar mes</a>
+  </div>
+
+  {% if sin_contrato and filas %}
+    <div style="margin-top:16px">{{ ui.alert("Sin contrato maestro configurado: el resultado toma los gastos tal como vienen en el informe (incluye el canon ahí, si aplica).", "info") }}</div>
+  {% endif %}
+  {% if sin_politica and filas %}
+    <div style="margin-top:12px">{{ ui.alert("Sin política de distribución: el fondo de reserva no se calcula.", "info") }}</div>
+  {% endif %}
+  {% if error_asesoria %}
+    <div style="margin-top:12px">{{ ui.alert("No se pudo generar la asesoría: " ~ error_asesoria, "error") }}</div>
+  {% endif %}
+
+  {% if reserva_saldo is not none %}
+  <div class="card{{ ' card--dark' if reserva_agotada }}" style="padding:clamp(18px,3vw,26px);margin-top:20px">
+    <div class="row" style="justify-content:space-between;align-items:baseline">
+      <span class="eyebrow">Fondo de reserva</span>
+      <span class="semaforo-value" style="font-size:26px;color:{{ 'var(--rojo)' if reserva_saldo < 0 else 'inherit' }}">
+        {{ activo.moneda }} {{ "{:,.0f}".format(reserva_saldo) }}
+      </span>
+    </div>
+    {% if reserva_agotada %}
+      <p style="margin:10px 0 0;color:var(--rojo);font-weight:600">Reserva agotada: el último mes ya no la pudo cubrir.</p>
+    {% elif meses_restantes is not none %}
+      <p class="muted" style="margin:10px 0 0">
+        Al ritmo de déficit del último mes, la reserva alcanza para
+        <strong>{{ "%.1f"|format(meses_restantes) }}</strong> meses más.
+      </p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if filas %}
+  <div class="card" style="padding:0;overflow:auto;margin-top:14px">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Mes</th><th>Diagnóstico</th><th>Ocupación</th><th>Ingreso</th><th>Gastos + comisión</th>
+          <th>Canon maestro</th><th>Resultado</th><th>Reserva</th><th>Asesoría</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in filas %}
+        <tr>
+          <td>{{ meses[f.mes - 1] | capitalize }} {{ f.anio }}</td>
+          <td>
+            {% if f.diagnostico %}
+            <span class="row" style="gap:6px">
+              <span class="dot dot--{{ f.diagnostico.resultado.estado }}" title="{{ f.diagnostico.resultado.explicacion }}"></span>
+              <span class="dot dot--{{ f.diagnostico.ocupacion.estado }}" title="{{ f.diagnostico.ocupacion.explicacion }}"></span>
+            </span>
+            {% else %}<span class="muted">—</span>{% endif %}
+          </td>
+          <td class="mono">
+            {{ f.ocupacion }} / {{ activo.unidades_totales }}
+            {% if f.diagnostico %}<div class="muted" style="font-size:11px">equil. {{ f.diagnostico.ocupacion_equilibrio }}</div>{% endif %}
+          </td>
+          <td class="mono">{{ activo.moneda }} {{ "{:,.0f}".format(f.ingreso) }}</td>
+          <td class="mono">{{ activo.moneda }} {{ "{:,.0f}".format(f.costos_variables) }}</td>
+          <td class="mono">{{ activo.moneda }} {{ "{:,.0f}".format(f.obligacion_fija) }}</td>
+          <td class="mono" style="font-weight:600;color:{{ 'var(--rojo)' if f.resultado < 0 else 'var(--ink)' }}">
+            {{ activo.moneda }} {{ "{:,.0f}".format(f.resultado) }}
+            {% if f.brecha and not f.brecha.en_linea %}
+              <div class="mono" style="font-weight:400;color:var(--rojo);font-size:11px">no cubre la política</div>
+            {% endif %}
+          </td>
+          <td class="mono">
+            {% if f.reserva_monto is not none %}
+              <span style="color:{{ 'var(--rojo)' if f.reserva_monto < 0 else 'var(--ink-dim)' }}">
+                {{ '−' if f.reserva_monto < 0 else '+' }} {{ "{:,.0f}".format(f.reserva_monto | abs) }}
+              </span>
+              <div class="muted" style="font-size:11px">saldo {{ "{:,.0f}".format(f.reserva_saldo) }}</div>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if f.tiene_asesoria %}
+              <a class="btn btn--ghost" style="padding:6px 12px;font-size:12px"
+                 href="/asesoria/{{ f.anio }}/{{ f.mes }}">Ver</a>
+            {% else %}
+              <form method="post" action="/asesoria/{{ f.anio }}/{{ f.mes }}" style="display:inline">
+                <button class="btn btn--ghost" type="submit" style="padding:6px 12px;font-size:12px">Generar</button>
+              </form>
+            {% endif %}
+          </td>
+          <td style="text-align:right">
+            <a class="btn btn--ghost" style="padding:6px 12px;font-size:12px"
+               href="/registro?anio={{ f.anio }}&mes={{ f.mes }}">Editar</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="margin-top:20px">{{ ui.alert("Todavía no hay meses registrados.", "info") }}</div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block content %}
+<section>
+  <span class="eyebrow">Configuración</span>
+  <h1 style="font-size:clamp(28px,4vw,40px);margin:14px 0 18px">{{ activo.nombre }}</h1>
+
+  <div class="stack">
+
+    <div class="card" style="padding:clamp(20px,3vw,32px)">
+      <div class="row" style="justify-content:space-between;margin-bottom:16px">
+        <span class="eyebrow">Activo</span>
+        <a class="btn btn--ghost" href="/config/activo">Editar</a>
+      </div>
+      <div class="stat-grid">
+        {{ ui.stat("Tipo", activo.tipo) }}
+        {{ ui.stat("Unidades", activo.unidades_totales) }}
+        {{ ui.stat("Comisión", (activo.comision_administrador_pct | string) ~ " %") }}
+        {{ ui.stat("Moneda", activo.moneda) }}
+        {{ ui.stat("Ubicación", activo.ubicacion or "—") }}
+      </div>
+      {% if activo.notas %}<p class="muted" style="margin-top:14px">{{ activo.notas }}</p>{% endif %}
+    </div>
+
+    <div class="card" style="padding:clamp(20px,3vw,32px)">
+      <div class="row" style="justify-content:space-between;margin-bottom:16px">
+        <span class="eyebrow">Política de distribución</span>
+        <a class="btn btn--ghost" href="/config/politica">{{ "Editar" if politica else "Definir" }}</a>
+      </div>
+      {% if politica %}
+      <div class="stat-grid">
+        {{ ui.stat("Libre", (politica.porcentaje_libre | string) ~ " %") }}
+        {{ ui.stat("Reinversión", (politica.porcentaje_reinversion | string) ~ " %") }}
+        {{ ui.stat("Reserva", (politica.porcentaje_reserva | string) ~ " %") }}
+        {{ ui.stat("Impuesto", ((politica.tarifa_marginal_actual | string) ~ " %") if politica.calcular_impuesto else "no se calcula") }}
+      </div>
+      {% else %}
+      {{ ui.alert("Sin definir.", "info") }}
+      {% endif %}
+    </div>
+
+    <div class="card" style="padding:clamp(20px,3vw,32px)">
+      <div class="row" style="justify-content:space-between;margin-bottom:16px">
+        <span class="eyebrow">Umbrales y horizonte</span>
+        <a class="btn btn--ghost" href="/config/umbrales">Editar</a>
+      </div>
+      <p class="card-note">
+        Umbrales del diagnóstico y la ventana temporal de la asesoría. Se ajustan cuando
+        quieras, sin depender de un contrato maestro.
+      </p>
+      <div class="stat-grid" style="margin-top:12px">
+        {% for c in claves %}
+          {{ ui.stat(c.etiqueta, conf.get(c.clave) or "sin definir") }}
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card" style="padding:clamp(20px,3vw,32px)">
+      <div class="row" style="justify-content:space-between;margin-bottom:16px">
+        <span class="eyebrow">Inversión de montaje (capex)</span>
+        <a class="btn btn--ghost" href="/config/capex">Gestionar</a>
+      </div>
+      {% if capex %}
+      <div class="stat-grid">
+        {{ ui.stat("Partidas", capex | length) }}
+        {{ ui.stat("Total", (activo.moneda ~ " " ~ "{:,.0f}".format(capex | sum(attribute="monto")))) }}
+      </div>
+      {% else %}
+      {{ ui.alert("Sin registrar.", "info") }}
+      {% endif %}
+    </div>
+
+    <div class="card" style="padding:clamp(20px,3vw,32px)">
+      <div class="row" style="justify-content:space-between;margin-bottom:16px">
+        <span class="eyebrow">Recordatorios</span>
+        <a class="btn btn--ghost" href="/config/recordatorios">Gestionar</a>
+      </div>
+      {% if recordatorios_total %}
+      <div class="row" style="gap:8px">
+        <span class="chip{{ ' chip--rojo' if recordatorios_vencidos }}">{{ recordatorios_vencidos }} vencidos</span>
+        <span class="chip">{{ recordatorios_proximos }} próximos</span>
+        <span class="chip chip--outline">{{ recordatorios_total }} en total</span>
+      </div>
+      {% else %}
+      {{ ui.alert("Sin recordatorios.", "info") }}
+      {% endif %}
+    </div>
+
+    <div class="card" style="padding:clamp(20px,3vw,32px)">
+      <div class="row" style="justify-content:space-between;margin-bottom:16px">
+        <span class="eyebrow">Contrato maestro (opcional)</span>
+        <a class="btn btn--ghost" href="/config/contrato">{{ "Editar" if contrato else "Definir" }}</a>
+      </div>
+      {% if contrato %}
+      <div class="stat-grid">
+        {{ ui.stat("Canon mensual", (activo.moneda ~ " " ~ "{:,.0f}".format(contrato.canon_mensual))) }}
+        {{ ui.stat("Vence", contrato.fecha_vencimiento) }}
+        {{ ui.stat("Vigencia", (contrato.vigencia_meses | string) ~ " meses") }}
+        {{ ui.stat("Preaviso", (contrato.ventana_preaviso_dias | string) ~ " días") }}
+        {{ ui.stat("Reajuste", contrato.regla_reajuste or "—") }}
+      </div>
+      {% else %}
+      {{ ui.alert("No es necesario para operar. Si lo defines, el canon se descuenta aparte del resultado; si no, inclúyelo en los gastos fijos del informe mensual.", "info") }}
+      {% endif %}
+    </div>
+
+  </div>
+</section>
+{% endblock %}

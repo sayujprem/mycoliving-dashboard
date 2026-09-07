@@ -1,0 +1,171 @@
+/* MyColiving Dashboard — fundación visual (portada del diseño v2). */
+
+:root {
+  --bg: #F4F4F4;
+  --ink: #0A0D03;
+  --ink-dim: #4B4B4A;
+  --line: #E2E2E0;
+  --line-soft: #F0F0EE;
+  --card: #FFFFFF;
+
+  --accent: #D0FD65;
+  --accent-press: #C2F546;
+
+  --panel: #0A0D03;
+  --panel-2: #16190E;
+  --panel-line: #2A2E22;
+  --panel-ink: #FFFFFF;
+  --panel-ink-dim: #8A8A87;
+
+  --verde: #D0FD65;
+  --amarillo: #FFD84D;
+  --rojo: #E5573F;
+  --tint-verde: #FAFFF0;
+  --tint-amarillo: #FFFCF0;
+  --tint-rojo: #FFF5F3;
+
+  --r-pill: 999px;
+  --r-card: 18px;
+  --r-panel: 26px;
+  --r-sm: 11px;
+
+  --sans: "Manrope", Helvetica, Arial, sans-serif;
+  --serif: "Instrument Serif", Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--ink); text-decoration: none; }
+a:hover { color: var(--ink-dim); }
+h1, h2, h3 { letter-spacing: -0.025em; font-weight: 600; margin: 0; }
+.serif { font-family: var(--serif); font-style: italic; font-weight: 400; }
+.mono { font-family: var(--mono); }
+
+/* --- shell --- */
+.app-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px; flex-wrap: wrap;
+  padding: 16px clamp(20px, 4vw, 48px);
+  background: rgba(244, 244, 244, 0.88);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 20;
+}
+.brand { display: flex; align-items: center; gap: 11px; }
+.brand-mark {
+  width: 26px; height: 26px; border-radius: 7px; background: var(--ink);
+  display: grid; place-items: center;
+}
+.brand-mark span { width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+.brand-name { font-size: 15px; font-weight: 600; white-space: nowrap; }
+.app-nav {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px; background: var(--card);
+  border: 1px solid var(--line); border-radius: var(--r-pill);
+}
+.app-nav a {
+  font-size: 13px; font-weight: 500; padding: 8px 15px;
+  border-radius: var(--r-pill); color: var(--ink-dim);
+}
+.app-nav a.is-active { background: var(--accent); color: var(--ink); }
+
+.app-main { max-width: 1400px; margin: 0 auto; padding: clamp(24px, 4vw, 44px) clamp(16px, 3vw, 40px) 64px; }
+
+/* --- cards --- */
+.card {
+  background: var(--card); border-radius: var(--r-card);
+  padding: 20px; border: 1px solid var(--line);
+}
+.card--dark { background: var(--panel-2); border-color: var(--panel-line); color: var(--panel-ink); }
+.card--flat { border: 1px solid var(--line); }
+.card-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+}
+.card-head h3 { font-size: 17px; }
+.card-note { margin: 8px 0 0; font-size: 14px; color: var(--ink-dim); }
+
+/* --- chips / labels --- */
+.chip {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.09em;
+  padding: 5px 10px; border-radius: var(--r-pill);
+  background: var(--bg); color: var(--ink-dim);
+}
+.chip--accent { background: var(--accent); color: var(--ink); }
+.chip--rojo { background: var(--rojo); color: #fff; }
+.chip--outline { background: transparent; border: 1px solid var(--line); }
+.eyebrow {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--ink-dim);
+}
+
+/* --- semáforo --- */
+.semaforo {
+  border: 1px solid var(--line); border-radius: 14px; padding: 16px;
+}
+.semaforo--verde { background: var(--tint-verde); }
+.semaforo--amarillo { background: var(--tint-amarillo); }
+.semaforo--rojo { background: var(--tint-rojo); }
+.semaforo-top { display: flex; align-items: center; gap: 7px; }
+.dot { width: 8px; height: 8px; border-radius: var(--r-pill); flex: none; }
+.dot--verde { background: var(--verde); }
+.dot--amarillo { background: var(--amarillo); }
+.dot--rojo { background: var(--rojo); }
+.semaforo-value { font-size: 34px; font-weight: 600; letter-spacing: -0.03em; margin-top: 8px; line-height: 1; }
+.semaforo-sub { font-size: 13.5px; color: var(--ink-dim); margin-top: 6px; }
+
+/* --- stat grid (panel de ajustes / panorama) --- */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 2px; }
+.stat { padding: 14px 16px; border-bottom: 1px solid var(--line-soft); }
+.stat-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--ink-dim); text-transform: uppercase; }
+.stat-value { font-size: 17px; font-weight: 500; margin-top: 4px; }
+
+/* --- forms --- */
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.field .hint { font-size: 12.5px; color: var(--ink-dim); margin: 2px 0 6px; }
+input[type="text"], input[type="number"], input[type="date"], select, textarea {
+  width: 100%; padding: 10px 12px; font: inherit;
+  background: var(--card); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 10px;
+}
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--ink); }
+textarea { min-height: 70px; resize: vertical; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.btn {
+  display: inline-block; font: inherit; font-size: 14px; font-weight: 600;
+  padding: 12px 22px; border-radius: var(--r-pill); border: 1px solid var(--ink);
+  background: var(--accent); color: var(--ink); cursor: pointer;
+}
+.btn:hover { background: var(--accent-press); }
+.btn--ghost { background: var(--card); color: var(--ink-dim); border-color: var(--line); }
+.btn--ghost:hover { border-color: var(--ink); color: var(--ink); }
+
+/* --- mensajes --- */
+.alert { padding: 12px 14px; border-radius: 12px; font-size: 14px; }
+.alert--error { background: var(--tint-rojo); border: 1px solid var(--rojo); color: #7a271b; }
+.alert--info { background: var(--card); border: 1px dashed var(--line); color: var(--ink-dim); }
+
+/* --- tabla --- */
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th {
+  text-align: left; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-dim);
+  padding: 10px 12px; border-bottom: 1px solid var(--line);
+}
+.table td { padding: 11px 12px; border-bottom: 1px solid var(--line-soft); }
+
+/* --- utilidades --- */
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.muted { color: var(--ink-dim); }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }

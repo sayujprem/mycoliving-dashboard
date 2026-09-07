@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block content %}
+<section style="max-width:680px">
+  <span class="eyebrow">Registrar mes</span>
+  <h1 style="font-size:clamp(26px,4vw,38px);margin:14px 0 8px">Informe de la inmobiliaria</h1>
+  <p class="muted" style="margin-bottom:18px">
+    Copia los campos del informe del mes. El sistema deriva la ocupación y el ingreso de
+    subarriendo de las unidades.
+  </p>
+
+  {% for e in errores %}{{ ui.alert(e, "error") }}{% endfor %}
+
+  <form method="post" action="/registro" class="card" style="padding:clamp(20px,3vw,28px)">
+    <div class="form-row">
+      <div class="field">
+        <label for="mes">Mes</label>
+        <select id="mes" name="mes">
+          {% for m in meses %}
+            <option value="{{ loop.index }}" {{ 'selected' if loop.index == mes }}>{{ m | capitalize }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="anio">Año</label>
+        <input type="number" id="anio" name="anio" step="1" min="2000" value="{{ anio }}">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Unidades</label>
+      <p class="hint">Marca las arrendadas y escribe el ingreso que cobras a cada inquilino.</p>
+      <div class="stack" style="gap:8px">
+        {% for f in filas %}
+        <div class="row" style="gap:12px;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line-soft)">
+          <label class="row" style="gap:8px;font-weight:600;margin:0">
+            <input type="checkbox" name="unidad_{{ f.i }}_arrendada" value="1" style="width:auto"
+                   {{ 'checked' if f.arrendada }}>
+            {{ f.label }}
+          </label>
+          <input type="number" name="unidad_{{ f.i }}_ingreso" step="0.01" min="0"
+                 placeholder="ingreso" style="max-width:200px" value="{{ f.ingreso }}">
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="field">
+        <label for="gastos_fijos">Gastos fijos</label>
+        <p class="hint">Si no tienes un contrato maestro configurado aparte, incluye aquí el canon que le pagas a la propietaria.</p>
+        <input type="number" id="gastos_fijos" name="gastos_fijos" step="0.01" min="0"
+               value="{{ datos.gastos_fijos }}" required>
+      </div>
+      <div class="field">
+        <label for="gastos_variables">Gastos variables</label>
+        <input type="number" id="gastos_variables" name="gastos_variables" step="0.01" min="0"
+               value="{{ datos.gastos_variables }}" required>
+      </div>
+    </div>
+    <div class="field">
+      <label for="comision_admin">Comisión del administrador</label>
+      <p class="hint">La comisión que aparece como línea propia en el informe.</p>
+      <input type="number" id="comision_admin" name="comision_admin" step="0.01" min="0"
+             value="{{ datos.comision_admin }}" required>
+    </div>
+    <div class="field">
+      <label for="novedades">Novedades</label>
+      <textarea id="novedades" name="novedades"
+        placeholder="Texto libre del informe: renovaciones, incidencias, etc.">{{ datos.novedades }}</textarea>
+    </div>
+
+    <div class="row">
+      <button class="btn" type="submit">Guardar el mes</button>
+      <a class="btn btn--ghost" href="/historico">Ver histórico</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

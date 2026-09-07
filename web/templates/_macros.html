@@ -1,0 +1,66 @@
+{# Parciales reutilizables del diseño v2. Uso: {% import "_macros.html" as ui %} #}
+
+{% macro chip(text, tone="") -%}
+<span class="chip {{ 'chip--' ~ tone if tone }}">{{ text }}</span>
+{%- endmacro %}
+
+{% macro eyebrow(text) -%}
+<span class="eyebrow">{{ text }}</span>
+{%- endmacro %}
+
+{% macro dot(estado) -%}
+<span class="dot dot--{{ estado }}"></span>
+{%- endmacro %}
+
+{# Píldora de semáforo: estado in {verde, amarillo, rojo} #}
+{% macro semaforo(nombre, valor, estado, sub="") -%}
+<div class="semaforo semaforo--{{ estado }}">
+  <div class="semaforo-top">{{ dot(estado) }}<span class="mono" style="font-size:11.5px;letter-spacing:.1em;color:var(--ink-dim)">{{ nombre }}</span></div>
+  <div class="semaforo-value">{{ valor }}</div>
+  {% if sub %}<div class="semaforo-sub">{{ sub }}</div>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro stat(label, value) -%}
+<div class="stat">
+  <div class="stat-label">{{ label }}</div>
+  <div class="stat-value">{{ value }}</div>
+</div>
+{%- endmacro %}
+
+{% macro alert(text, tone="info") -%}
+<div class="alert alert--{{ tone }}">{{ text }}</div>
+{%- endmacro %}
+
+{# Fila de recordatorio: r = {categoria, descripcion, fecha, dias, estado, tono} #}
+{% macro recordatorio_row(r) -%}
+<div class="row" style="justify-content:space-between;padding:11px 12px;border-radius:11px;border-bottom:1px solid var(--line-soft);{{ 'background:var(--tint-rojo)' if r.tono == 'rojo' }}">
+  <div>
+    <div class="row" style="gap:7px">{{ dot(r.tono) }}<span class="mono" style="font-size:11.5px;letter-spacing:.09em;color:var(--ink-dim)">{{ r.categoria }}</span></div>
+    <div style="font-weight:600;margin-top:4px">{{ r.descripcion }}</div>
+    <div class="muted" style="font-size:13.5px">{{ r.fecha }}</div>
+  </div>
+  <div style="text-align:right">
+    <div class="mono" style="font-size:17px">{{ r.dias }}</div>
+    <div class="mono muted" style="font-size:11.5px">{{ r.estado }}</div>
+  </div>
+</div>
+{%- endmacro %}
+
+{# Barra de brecha: b = {nombre, brecha, color, real, meta, pct, ancho_real, ancho_falta} #}
+{% macro brecha_row(b) -%}
+<div style="padding:12px 0;border-bottom:1px solid var(--line-soft)">
+  <div class="row" style="justify-content:space-between">
+    <span style="font-weight:600">{{ b.nombre }}</span>
+    <span class="mono" style="font-size:14px;color:{{ b.color }}">{{ b.brecha }}</span>
+  </div>
+  <div style="display:flex;height:7px;border-radius:999px;overflow:hidden;background:var(--line-soft);margin-top:9px">
+    <div style="background:var(--ink);width:{{ b.ancho_real }}"></div>
+    <div style="background:var(--line);width:{{ b.ancho_falta }}"></div>
+  </div>
+  <div class="row mono muted" style="justify-content:space-between;margin-top:7px;font-size:12.5px">
+    <span>real {{ b.real }}</span>
+    <span>política {{ b.meta }} · {{ b.pct }}</span>
+  </div>
+</div>
+{%- endmacro %}

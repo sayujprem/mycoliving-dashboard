@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block content %}
+<section style="max-width:640px">
+  <span class="eyebrow">Configuración · Activo</span>
+  <h1 style="font-size:clamp(26px,4vw,38px);margin:14px 0 18px">
+    {{ "Editar el activo" if modo == "editar" else "Definir el activo" }}
+  </h1>
+
+  {% for e in errores %}{{ ui.alert(e, "error") }}{% endfor %}
+
+  <form method="post" action="/config/activo" class="card" style="padding:clamp(20px,3vw,28px);margin-top:14px">
+    <div class="field">
+      <label for="nombre">Nombre</label>
+      <input type="text" id="nombre" name="nombre" value="{{ activo.nombre if activo else '' }}" required>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label for="tipo">Tipo</label>
+        <select id="tipo" name="tipo">
+          {% for t in tipos %}
+            <option value="{{ t }}" {{ 'selected' if activo and activo.tipo == t }}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="moneda">Moneda</label>
+        <select id="moneda" name="moneda">
+          {% for m in monedas %}
+            <option value="{{ m }}" {{ 'selected' if activo and activo.moneda == m }}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label for="unidades_totales">Unidades</label>
+        <input type="number" id="unidades_totales" name="unidades_totales" min="1"
+               value="{{ activo.unidades_totales if activo else '' }}" required>
+      </div>
+      <div class="field">
+        <label for="comision_administrador_pct">Comisión del administrador (%)</label>
+        <input type="number" step="0.1" id="comision_administrador_pct" name="comision_administrador_pct"
+               value="{{ activo.comision_administrador_pct if activo else '' }}" required>
+      </div>
+    </div>
+    <div class="field">
+      <label for="ubicacion">Ubicación</label>
+      <input type="text" id="ubicacion" name="ubicacion" value="{{ activo.ubicacion if activo else '' }}">
+    </div>
+    <div class="field">
+      <label for="notas">Notas de contexto</label>
+      <textarea id="notas" name="notas"
+        placeholder="Zonas comunes, estrato, particularidades que el diagnóstico debe conocer.">{{ activo.notas if activo else '' }}</textarea>
+    </div>
+    <div class="row">
+      <button class="btn" type="submit">Guardar</button>
+      <a class="btn btn--ghost" href="/config">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block content %}
+<section style="max-width:760px">
+  <span class="eyebrow">Configuración · Recordatorios</span>
+  <h1 style="font-size:clamp(26px,4vw,38px);margin:14px 0 8px">Recordatorios</h1>
+  <p class="muted" style="margin-bottom:18px">
+    Mantenimiento, seguros y contratos. El riesgo de un activo pasivo casi siempre es una
+    fecha que se pasó.
+  </p>
+
+  {% for e in errores %}{{ ui.alert(e, "error") }}{% endfor %}
+
+  {% if clasificados %}
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
+    <div class="stack" style="gap:0">
+      {% for r, estado in clasificados %}
+        {{ ui.recordatorio_row({
+             "categoria": r.categoria,
+             "descripcion": r.descripcion,
+             "fecha": estado.proxima_fecha,
+             "dias": ('+' ~ (estado.dias_restantes | abs)) if estado.dias_restantes < 0 else estado.dias_restantes,
+             "estado": "días vencido" if estado.estado == "vencido" else "días restantes",
+             "tono": "rojo" if estado.estado == "vencido" else ("amarillo" if estado.estado == "proximo" else "verde"),
+           }) }}
+        <form method="post" action="/config/recordatorios/{{ r.id }}/eliminar"
+              style="padding:0 12px 8px;text-align:right">
+          <button class="btn btn--ghost" type="submit" style="padding:5px 11px;font-size:12px">Quitar</button>
+        </form>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  {{ ui.alert("Todavía no hay recordatorios.", "info") }}
+  {% endif %}
+
+  <form method="post" action="/config/recordatorios" class="card" style="padding:clamp(20px,3vw,28px);margin-top:14px">
+    <div class="form-row">
+      <div class="field">
+        <label for="categoria">Categoría</label>
+        <input type="text" id="categoria" name="categoria" list="cats" required>
+        <datalist id="cats">
+          {% for c in categorias %}<option value="{{ c }}">{% endfor %}
+        </datalist>
+      </div>
+      <div class="field">
+        <label for="descripcion">Descripción</label>
+        <input type="text" id="descripcion" name="descripcion" required>
+      </div>
+    </div>
+    <p class="hint">Periódico: última fecha + frecuencia. De vencimiento único: solo la fecha fija.</p>
+    <div class="form-row">
+      <div class="field">
+        <label for="ultima_fecha">Última fecha</label>
+        <input type="date" id="ultima_fecha" name="ultima_fecha">
+      </div>
+      <div class="field">
+        <label for="frecuencia_meses">Frecuencia (meses)</label>
+        <input type="number" step="1" min="1" id="frecuencia_meses" name="frecuencia_meses">
+      </div>
+    </div>
+    <div class="field">
+      <label for="fecha_vencimiento_fija">Fecha de vencimiento fija</label>
+      <input type="date" id="fecha_vencimiento_fija" name="fecha_vencimiento_fija">
+    </div>
+    <div class="row">
+      <button class="btn" type="submit">Agregar</button>
+      <a class="btn btn--ghost" href="/config">Volver</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

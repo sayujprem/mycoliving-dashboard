@@ -1,0 +1,1 @@
+Capa **dominio**: logica especifica del subarriendo de inmuebles y de Colombia (interpretacion del informe de la inmobiliaria, criterios de semaforo del coliving incluida la regla de vacancia, y el conocimiento fiscal colombiano concentrado en un unico modulo). Si manana cambia una ley o el sistema se aplica en otro pais, se toca solo esta carpeta.

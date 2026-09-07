@@ -1,0 +1,1 @@
+Capa **motor**: logica independiente del tipo de activo y del pais (almacenamiento de reportes periodicos, consolidacion e historico, calculo de brecha vs. politica de distribucion, tracking de reserva, recuperacion de capex, motor de recordatorios por fecha, orquestacion del API de Anthropic). No debe contener referencias a coliving, inmuebles ni Colombia.

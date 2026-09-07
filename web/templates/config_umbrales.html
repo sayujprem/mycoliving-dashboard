@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block content %}
+<section style="max-width:640px">
+  <span class="eyebrow">Configuración · Umbrales y horizonte</span>
+  <h1 style="font-size:clamp(26px,4vw,38px);margin:14px 0 8px">Umbrales y horizonte</h1>
+  <p class="muted" style="margin-bottom:18px">
+    Los umbrales definen qué es "óptimo" para este activo; el horizonte enmarca la
+    asesoría y el ritmo de recuperación del capex. Todo ajustable en cualquier momento,
+    sin tocar código y sin necesidad de un contrato maestro.
+  </p>
+
+  {% for e in errores %}{{ ui.alert(e, "error") }}{% endfor %}
+
+  <form method="post" action="/config/umbrales" class="card" style="padding:clamp(20px,3vw,28px)">
+    {% for c in claves %}
+    <div class="field">
+      <label for="{{ c.clave }}">{{ c.etiqueta }}</label>
+      <p class="hint">{{ c.descripcion }}</p>
+      {% if c.tipo == 'texto' %}
+        <input type="text" id="{{ c.clave }}" name="{{ c.clave }}" value="{{ conf.get(c.clave, '') }}">
+      {% else %}
+        <input type="number" id="{{ c.clave }}" name="{{ c.clave }}" min="0"
+               step="{{ '1' if c.tipo == 'int' else 'any' }}"
+               value="{{ conf.get(c.clave, '') }}">
+      {% endif %}
+    </div>
+    {% endfor %}
+    <div class="row">
+      <button class="btn" type="submit">Guardar</button>
+      <a class="btn btn--ghost" href="/config">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
