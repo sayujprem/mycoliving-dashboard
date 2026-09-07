@@ -72,6 +72,10 @@ def test_readme_documenta_el_recordatorio_mensual():
     assert "Recordatorio mensual de carga" in readme
     assert "evento recurrente de calendario" in readme
     assert "/registro" in readme
+    # El evento existe de verdad: el README documenta cuál es, no cómo crearlo.
+    assert "Registrar el mes del coliving" in readme
+    assert "día 5" in readme
+    assert "RRULE:FREQ=MONTHLY;BYMONTHDAY=5" in readme
 
 
 def test_readme_documenta_el_seed_y_el_arranque():

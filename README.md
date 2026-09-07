@@ -62,15 +62,22 @@ Variables de entorno (`.env`):
 
 ## Recordatorio mensual de carga
 
-El dashboard corre en tu máquina y no te avisa solo. Para no depender de la memoria, crea un
-**evento recurrente de calendario**:
+El dashboard corre en tu máquina y no te avisa solo, así que el aviso vive en el calendario.
+Ya existe un **evento recurrente de calendario** creado para esto:
 
-- Frecuencia: mensual, el día en que la inmobiliaria suele enviar el informe.
-- Título: "Registrar el mes del coliving".
-- Descripción / enlace: `http://127.0.0.1:8000/registro`.
+- **Título:** `Registrar el mes del coliving`
+- **Cuándo:** el **día 5** de cada mes, 09:00–09:30 hora de Bogotá, con aviso 60 minutos antes.
+- **Regla de recurrencia:** `RRULE:FREQ=MONTHLY;BYMONTHDAY=5`
+- **Descripción:** los tres pasos (levantar el servidor, registrar el mes en
+  `http://127.0.0.1:8000/registro` incluyendo el canon en los gastos fijos, y revisar el
+  panel y generar la asesoría).
 
-Al llegar el aviso: abrir el enlace, copiar el informe, revisar el Panel y generar la
-asesoría del mes.
+El día 5 es un supuesto sobre cuándo envía el informe la inmobiliaria. Si llega otro día,
+mueve el evento **y también** el respaldo automático, que corre el mismo día a las 21:00
+para alcanzar a incluir el mes recién registrado.
+
+Si borras el evento por accidente, se recrea a mano en Google Calendar con los datos de
+arriba.
 
 ## Estructura
 
