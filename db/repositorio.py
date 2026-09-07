@@ -246,6 +246,18 @@ def guardar_reporte(activo_id: int, datos: dict, unidades: list[dict]) -> int:
         return reporte_id
 
 
+def eliminar_reporte(activo_id: int, anio: int, mes: int) -> None:
+    """Las filas de `reporte_unidad` caen solas por ON DELETE CASCADE (schema.sql), porque
+    `get_connection()` activa PRAGMA foreign_keys = ON. La asesoría del mes NO cae sola:
+    para eso está `eliminar_asesoria`. Y el fondo de reserva hay que reconstruirlo después
+    con `dominio.reserva.recalcular_reserva`, porque el saldo es acumulativo."""
+    with db_cursor() as cur:
+        cur.execute(
+            "DELETE FROM reporte_mensual WHERE activo_id = ? AND anio = ? AND mes = ?",
+            (activo_id, anio, mes),
+        )
+
+
 # --- movimientos del fondo de reserva (derivados; se reconstruyen enteros) ---
 
 
@@ -353,4 +365,14 @@ def guardar_asesoria(activo_id: int, datos: dict) -> None:
         cur.execute(
             f"INSERT INTO asesoria_generada ({columnas}) VALUES ({marcadores})",
             (activo_id, *(datos.get(c) for c in CAMPOS_ASESORIA_DB)),
+        )
+
+
+def eliminar_asesoria(activo_id: int, anio: int, mes: int) -> None:
+    """`asesoria_generada` cuelga de `activo_id`, no del reporte, así que no cae sola
+    cuando se borra el mes: hay que borrarla aparte."""
+    with db_cursor() as cur:
+        cur.execute(
+            "DELETE FROM asesoria_generada WHERE activo_id = ? AND anio = ? AND mes = ?",
+            (activo_id, anio, mes),
         )

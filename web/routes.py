@@ -12,8 +12,10 @@ from db.repositorio import (
     agregar_capex,
     agregar_recordatorio,
     crear_o_actualizar_activo,
+    eliminar_asesoria,
     eliminar_capex,
     eliminar_recordatorio,
+    eliminar_reporte,
     get_activo,
     get_capex,
     get_configuracion,
@@ -795,6 +797,19 @@ def historico(request: Request):
             "error_asesoria": request.query_params.get("error_asesoria"),
         },
     )
+
+
+@router.post("/historico/{anio}/{mes}/eliminar", response_class=HTMLResponse)
+def historico_eliminar_mes(request: Request, anio: int, mes: int):
+    """Quitar un mes mal cargado. Arrastra sus unidades (por cascade), su asesoría (que
+    cuelga del activo, no del reporte) y obliga a rehacer el fondo de reserva, cuyo saldo
+    es acumulativo."""
+    activo = get_activo()
+    if activo:
+        eliminar_reporte(activo["id"], anio, mes)
+        eliminar_asesoria(activo["id"], anio, mes)
+        recalcular_reserva(activo["id"])
+    return RedirectResponse("/historico", status_code=303)
 
 
 @router.get("/asesoria/{anio}/{mes}", response_class=HTMLResponse)

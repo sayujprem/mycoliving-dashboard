@@ -89,9 +89,13 @@
               </form>
             {% endif %}
           </td>
-          <td style="text-align:right">
+          <td style="text-align:right;white-space:nowrap">
             <a class="btn btn--ghost" style="padding:6px 12px;font-size:12px"
                href="/registro?anio={{ f.anio }}&mes={{ f.mes }}">Editar</a>
+            <form method="post" action="/historico/{{ f.anio }}/{{ f.mes }}/eliminar" style="display:inline">
+              <button class="btn btn--ghost" type="submit" style="padding:6px 12px;font-size:12px"
+                      onclick="return confirm('¿Quitar {{ meses[f.mes - 1] }} {{ f.anio }}? También se borra la asesoría generada para ese mes.')">Quitar</button>
+            </form>
           </td>
         </tr>
         {% endfor %}
