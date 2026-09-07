@@ -112,6 +112,9 @@ def panel(request: Request) -> HTMLResponse:
             "meses": meses,
             "nombres_mes": MESES,
             **datos,
+            # Estado de navegación, no de dominio: por eso se arma aquí y no en panel_mes().
+            # Va después del spread para que nada lo pise.
+            "error_asesoria": request.query_params.get("error_asesoria"),
         },
     )
 
@@ -829,7 +832,12 @@ def asesoria_vista(request: Request, anio: int, mes: int):
 
 
 @router.post("/asesoria/{anio}/{mes}", response_class=HTMLResponse)
-def asesoria_generar(request: Request, anio: int, mes: int):
+def asesoria_generar(
+    request: Request, anio: int, mes: int, origen: str = Form("historico")
+):
+    """`origen` dice desde qué pantalla se pulsó el botón, para devolver el error ahí mismo
+    en vez de sacar al usuario de donde estaba. El default preserva el comportamiento
+    anterior para cualquier POST que no mande el campo."""
     activo = get_activo()
     if not activo:
         return RedirectResponse("/config/activo", status_code=303)
@@ -837,7 +845,11 @@ def asesoria_generar(request: Request, anio: int, mes: int):
     if not resultado.ok:
         from urllib.parse import quote
 
-        return RedirectResponse(
-            f"/historico?error_asesoria={quote(resultado.error)}", status_code=303
+        error = quote(resultado.error)
+        destino = (
+            f"/?anio={anio}&mes={mes}&error_asesoria={error}"
+            if origen == "panel"
+            else f"/historico?error_asesoria={error}"
         )
+        return RedirectResponse(destino, status_code=303)
     return RedirectResponse(f"/asesoria/{anio}/{mes}", status_code=303)

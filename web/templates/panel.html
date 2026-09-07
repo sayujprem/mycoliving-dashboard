@@ -186,11 +186,15 @@
               <span class="dot dot--verde"></span>
               <span class="mono" style="font-size:12px;letter-spacing:.1em;color:var(--accent)">ASESORÍA FISCAL Y FINANCIERA</span>
             </div>
+            {% if error_asesoria %}
+              <div style="margin-top:12px">{{ ui.alert("No se pudo generar la asesoría: " ~ error_asesoria, "error-oscuro") }}</div>
+            {% endif %}
             {% if asesoria %}
               <div style="white-space:pre-line;font-size:14.5px;line-height:1.6;color:var(--panel-ink);margin-top:12px">{{ asesoria.texto_asesoria }}</div>
               <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--panel-line);font-size:13.5px;line-height:1.55;color:var(--panel-ink-dim);white-space:pre-line">{{ asesoria.texto_fiscal }}</div>
               <div class="row" style="margin-top:14px">
                 <form method="post" action="/asesoria/{{ anio }}/{{ mes }}" style="display:inline">
+                  <input type="hidden" name="origen" value="panel">
                   <button class="btn btn--ghost" type="submit" style="padding:7px 14px;font-size:12px">Regenerar</button>
                 </form>
               </div>
@@ -199,6 +203,7 @@
                 Todavía no se ha generado la asesoría de este mes.
               </p>
               <form method="post" action="/asesoria/{{ anio }}/{{ mes }}" style="margin-top:12px">
+                <input type="hidden" name="origen" value="panel">
                 <button class="btn" type="submit">Generar asesoría</button>
               </form>
             {% endif %}

@@ -85,6 +85,7 @@
                  href="/asesoria/{{ f.anio }}/{{ f.mes }}">Ver</a>
             {% else %}
               <form method="post" action="/asesoria/{{ f.anio }}/{{ f.mes }}" style="display:inline">
+                <input type="hidden" name="origen" value="historico">
                 <button class="btn btn--ghost" type="submit" style="padding:6px 12px;font-size:12px">Generar</button>
               </form>
             {% endif %}

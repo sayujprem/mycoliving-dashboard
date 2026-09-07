@@ -154,6 +154,9 @@ textarea { min-height: 70px; resize: vertical; }
 .alert { padding: 12px 14px; border-radius: 12px; font-size: 14px; }
 .alert--error { background: var(--tint-rojo); border: 1px solid var(--rojo); color: #7a271b; }
 .alert--info { background: var(--card); border: 1px dashed var(--line); color: var(--ink-dim); }
+/* Para alertas dentro de .card--dark: .alert--error usa un fondo casi blanco y sería
+   ilegible sobre el panel oscuro. */
+.alert--error-oscuro { background: rgba(229, 87, 63, .14); border: 1px solid var(--rojo); color: #FFC9BF; }
 
 /* --- tabla --- */
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
