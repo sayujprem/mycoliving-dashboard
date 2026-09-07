@@ -79,6 +79,61 @@ para alcanzar a incluir el mes recién registrado.
 Si borras el evento por accidente, se recrea a mano en Google Calendar con los datos de
 arriba.
 
+## Respaldo mensual a Google Drive
+
+La base es un solo archivo con años de historia financiera, así que se respalda sola el
+**día 5 de cada mes a las 21:00** (después del recordatorio de las 09:00, para alcanzar a
+incluir el mes recién registrado). Destino: la carpeta **Seguimiento estratégico** del Drive
+de Nelson. Se conservan las 12 copias más recientes en Drive y las 3 más recientes en local.
+
+### Instalación, una sola vez
+
+```bash
+mkdir -p ~/.local/bin && cd /tmp
+curl -fsSLO https://downloads.rclone.org/rclone-current-osx-amd64.zip
+unzip -oq rclone-current-osx-amd64.zip
+cp rclone-*-osx-amd64/rclone ~/.local/bin/rclone && chmod +x ~/.local/bin/rclone
+xattr -d com.apple.quarantine ~/.local/bin/rclone   # imprescindible: el binario no está firmado
+rclone version
+```
+
+El `xattr` no es opcional. Sin él, Gatekeeper mata el binario en cuarentena y el respaldo
+falla en silencio desde launchd, aunque funcione bien si lo corres tú en el terminal.
+
+Luego el permiso de Drive:
+
+```bash
+rclone config
+# n) New remote  →  name: gdrive  →  storage: drive
+# client_id / client_secret: vacío   |   scope: 1 (full access)
+# Edit advanced config: y  →  root_folder_id: 1Y_lZMYBc8-fCNTSmom5fseuBZy0RmORx
+# Use auto config: y  →  se abre el navegador → autorizar
+rclone lsd gdrive:     # debe listar el contenido de "Seguimiento estratégico"
+```
+
+Fijar `root_folder_id` es lo que hace que el respaldo escriba directamente en esa carpeta.
+
+### Programarlo
+
+```bash
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.mycoliving.respaldo.plist
+launchctl kickstart -k gui/$(id -u)/com.mycoliving.respaldo   # forzar una corrida ahora
+```
+
+### Comprobar que funciona
+
+El resultado de la última corrida aparece en **Configuración → Último respaldo**, porque una
+notificación de macOS se pierde y esa pantalla la miras cada mes. También queda en
+`logs/respaldo.log`. Para correrlo a mano:
+
+```bash
+.venv/bin/python -m scripts.respaldo ; echo "exit=$?"   # 0 si todo bien, 2 si falló
+```
+
+Si el respaldo falla desde launchd pero funciona en el terminal, la causa casi siempre es una
+de dos: falta el `xattr` de arriba, o macOS no le dio Acceso Total al Disco al Python de este
+`.venv` (Preferencias del Sistema → Seguridad y Privacidad → Acceso Total al Disco).
+
 ## Estructura
 
 - `motor/` — lógica independiente del tipo de activo y del país (resultado, brecha, reserva,
