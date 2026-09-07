@@ -95,8 +95,32 @@ Variables de entorno (`.env`):
    sano ronda el 78–82%. Con el umbral en 45 el semáforo de resultado nunca podría ponerse
    verde.
 
-   **Recalíbralo con tu primer mes real:** toma un mes bueno, calcula esa división y redondea
-   hacia arriba. Si algún día separas el canon en un contrato maestro, bájalo a ~45.
+   **Recalíbralo con tu primer mes real.** No hace falta calcular nada a mano: la app ya te
+   da el número. En el Panel, la explicación bajo el semáforo de resultado dice *"los gastos
+   y la comisión consumieron **79%** del ingreso"*. Toma ese porcentaje de un mes normal o
+   bueno, súmale 2 o 3 puntos de margen, y ese es el umbral (79% → 82).
+
+   El margen importa: puesto justo en el borde, cualquier mes con un gasto imprevisto se
+   pone amarillo y el semáforo deja de informar; puesto muy alto, nunca se pone amarillo y
+   tampoco informa. Si un mes dio pérdida, el panel no muestra el porcentaje: usa otro mes.
+
+   Si algún día separas el canon en un contrato maestro, bájalo a ~45.
+
+## Pasar de los datos de ejemplo a los reales
+
+En este orden, porque el umbral se calibra con un mes real y no con los de ejemplo:
+
+1. **Quitar la demo**: botón "Quitar los datos de ejemplo" en la franja ámbar del panel, o
+   `python -m scripts.demo limpiar`. Solo borra lo que cargó la demo.
+2. **Registrar el primer mes real** desde *Registrar mes*, recordando que el canon de la
+   propietaria va dentro de **Gastos fijos**.
+3. **Recalibrar `gasto_maximo_pct_verde`** con el porcentaje que muestra el panel (ver
+   arriba), desde Configuración → Umbrales y horizonte.
+4. **Comprobar**: ese mes bueno debería quedar verde. Si sigue amarillo, subiste poco; si un
+   mes flojo también salió verde, subiste demasiado. El umbral se cambia en segundos y no
+   altera ningún dato guardado, solo el color.
+5. **Cargar lo que la demo tenía de mentira**: el capex real de zonas comunes y tus
+   recordatorios de seguro, mantenimiento y revisión del contrato.
 4. Cuando llegue el informe de la inmobiliaria, entra a **Registrar mes** y copia los
    campos. El diagnóstico del mes aparece en el **Panel**.
 5. En el Panel, botón **Generar asesoría** para el informe redactado (requiere la API key).
@@ -157,9 +181,34 @@ Fijar `root_folder_id` es lo que hace que el respaldo escriba directamente en es
 > **Fecha de caducidad conocida.** Ese comando usa el identificador OAuth compartido de
 > rclone, que Google está retirando **durante 2026**. Cuando deje de funcionar, el respaldo
 > empezará a fallar con un error de autenticación (visible en Configuración → Último
-> respaldo, que es justo para lo que existe). La solución es crear un client_id propio en
-> Google Cloud Console, gratis, siguiendo https://rclone.org/drive/#making-your-own-client-id
-> y luego `rclone config update gdrive client_id <id> client_secret <secreto>`.
+> respaldo, que es justo para lo que existe esa línea). El arreglo está abajo.
+
+### Identificador propio de Google (pendiente)
+
+Gratis y no caduca. Unos diez minutos, casi todo en el navegador. Pasos según la
+[documentación de rclone](https://rclone.org/drive/#making-your-own-client-id):
+
+1. **console.cloud.google.com** → selector de proyecto → **Proyecto nuevo**
+   (`respaldos-mycoliving`).
+2. **APIs y servicios → Biblioteca** → `Google Drive API` → **Habilitar**.
+3. **Credenciales → Configurar pantalla de consentimiento → Comenzar.** Nombre `rclone`,
+   tu correo como asistencia y contacto, audiencia **Externo**, aceptar y **Crear**.
+4. **Acceso a los datos → Agregar o quitar permisos.** Añadir los tres:
+   `.../auth/docs`, `.../auth/drive`, `.../auth/drive.metadata.readonly`
+   (prefijo `https://www.googleapis.com`). **Actualizar** y **Guardar**.
+   Sin este paso el cliente no sirve.
+5. **Público → Usuarios de prueba → + Agregar usuarios** → tu correo → **Guardar**.
+6. **Descripción general → Crear cliente de OAuth** → tipo **Aplicación de escritorio** →
+   **Crear**. Anotar el ID de cliente y el secreto (si no muestra secreto, se deja vacío).
+7. **Público → PUBLICAR APP.** En modo *Prueba* Google caduca el permiso **cada 7 días**;
+   publicada dura indefinidamente. Advierte que no está verificada: Google exime a las apps
+   de uso personal con menos de 100 usuarios.
+8. En la terminal:
+   ```bash
+   rclone config update gdrive client_id TU_ID client_secret TU_SECRETO
+   rclone config reconnect gdrive:
+   ```
+9. Comprobar: `.venv/bin/python -m scripts.respaldo` debe terminar en `exit=0`.
 
 ### Programarlo
 
