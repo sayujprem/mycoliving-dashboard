@@ -93,6 +93,29 @@ def test_config_marca_el_contrato_como_opcional(client):
     assert "No es necesario para operar" in html
 
 
+def test_config_declara_el_modo_sin_contrato(client):
+    """No basta con decir que es opcional: la tarjeta declara dónde va el canon."""
+    html = client.get("/config").text
+    assert "dentro de los gastos fijos" in html
+    assert "Definir (opcional)" in html
+
+
+def test_historico_no_muestra_la_columna_de_canon_sin_contrato(client):
+    _mes(client, 7, 4)
+    assert "Canon maestro" not in client.get("/historico").text
+
+
+def test_historico_no_alerta_por_falta_de_contrato(client):
+    """La alerta se disparaba en cada visita y hacía parecer que faltaba configurar algo."""
+    _mes(client, 7, 4)
+    assert "Sin contrato maestro" not in client.get("/historico").text
+
+
+def test_panel_no_muestra_canon_en_cero_sin_contrato(client):
+    _mes(client, 7, 4)
+    assert "Canon maestro" not in client.get("/").text
+
+
 def test_asesoria_usa_el_horizonte_configurado_como_ventana(client):
     _mes(client, 7, 4)
     ctx = armar_contexto(get_activo()["id"], 2026, 7)

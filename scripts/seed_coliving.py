@@ -31,7 +31,11 @@ ACTIVO = {
 
 UMBRALES = {
     "ocupacion_minima_verde": "4",
-    "gasto_maximo_pct_verde": "45",
+    # 80 y no 45 porque el canon de la propietaria va DENTRO de los gastos fijos del informe
+    # (no hay contrato maestro). El semáforo de resultado mide
+    # (comisión + gastos fijos + gastos variables) / ingreso, así que con el canon adentro
+    # un mes sano ronda el 78-82%. Con 45 el semáforo nunca podría ponerse verde.
+    "gasto_maximo_pct_verde": "80",
     "meses_consecutivos_baja_ocupacion_para_rojo": "2",
     "arriendo_promedio_unidad": "850000",
     "ventana_aviso_recordatorio_dias": "30",
@@ -61,8 +65,9 @@ def seed() -> None:
     guardar_politica(activo_id, {**POLITICA, "fecha_definicion": date.today().isoformat()})
 
     print(f"Activo '{ACTIVO['nombre']}' creado (id {activo_id}) con umbrales, horizonte y política inicial.")
-    print("Falta el capex y los recordatorios desde /config. El contrato maestro es opcional:")
-    print("si no lo defines, incluye el canon en los gastos fijos de cada informe mensual.")
+    print("Esta operación NO usa contrato maestro: el canon de la propietaria va dentro de")
+    print("los gastos fijos de cada informe mensual. Por eso gasto_maximo_pct_verde queda en 80.")
+    print("Falta el capex y los recordatorios desde /config.")
 
 
 if __name__ == "__main__":

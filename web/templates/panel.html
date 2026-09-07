@@ -124,7 +124,7 @@
             <div class="stat-grid" style="margin-top:12px">
               {{ ui.stat("Ingreso", activo.moneda ~ " " ~ "{:,.0f}".format(c.ingreso)) }}
               {{ ui.stat("Gastos + comisión", activo.moneda ~ " " ~ "{:,.0f}".format(c.costos_variables)) }}
-              {{ ui.stat("Canon maestro", activo.moneda ~ " " ~ "{:,.0f}".format(c.obligacion_fija)) }}
+              {% if contrato %}{{ ui.stat("Canon maestro", activo.moneda ~ " " ~ "{:,.0f}".format(c.obligacion_fija)) }}{% endif %}
             </div>
             {% if capex %}
             <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line-soft)">

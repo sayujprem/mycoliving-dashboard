@@ -47,9 +47,15 @@ Variables de entorno (`.env`):
 2. En **Configuración** revisa los **umbrales y el horizonte** (ajustable en cualquier
    momento) y define el **capex** de zonas comunes y los **recordatorios** (seguro,
    mantenimiento, vencimientos).
-3. El **contrato maestro es opcional**. Si no lo defines, incluye el canon que le pagas a
-   la propietaria dentro de los gastos fijos de cada informe mensual; si lo defines, el
-   sistema lo descuenta aparte del resultado.
+3. **Esta operación no usa contrato maestro.** El canon que le pagas a la propietaria va
+   dentro de los **gastos fijos** de cada informe mensual. Por eso `gasto_maximo_pct_verde`
+   viene calibrado en **80** y no en 45: ese umbral mide
+   `(comisión + gastos fijos + gastos variables) ÷ ingreso`, y con el canon adentro un mes
+   sano ronda el 78–82%. Con el umbral en 45 el semáforo de resultado nunca podría ponerse
+   verde.
+
+   **Recalíbralo con tu primer mes real:** toma un mes bueno, calcula esa división y redondea
+   hacia arriba. Si algún día separas el canon en un contrato maestro, bájalo a ~45.
 4. Cuando llegue el informe de la inmobiliaria, entra a **Registrar mes** y copia los
    campos. El diagnóstico del mes aparece en el **Panel**.
 5. En el Panel, botón **Generar asesoría** para el informe redactado (requiere la API key).

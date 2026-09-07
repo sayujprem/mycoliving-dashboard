@@ -52,6 +52,21 @@ def test_app_arranca_con_el_activo_precargado():
     assert "Todavía no hay un activo configurado" not in r.text
 
 
+def test_seed_calibra_el_umbral_de_gasto_para_el_canon_incluido():
+    """Con el canon dentro de gastos_fijos, (comision+gastos)/ingreso ronda el 80%.
+    Con el umbral en 45 el semáforo de resultado nunca podría ponerse verde."""
+    seed()
+    conf = get_configuracion(get_activo()["id"])
+    assert conf["gasto_maximo_pct_verde"] == "80"
+
+
+def test_readme_declara_el_modo_sin_contrato():
+    readme = (RAIZ / "README.md").read_text(encoding="utf-8")
+    assert "dentro de los **gastos fijos**" in readme
+    assert "gasto_maximo_pct_verde" in readme
+    assert "Recalíbralo con tu primer mes real" in readme
+
+
 def test_readme_documenta_el_recordatorio_mensual():
     readme = (RAIZ / "README.md").read_text(encoding="utf-8")
     assert "Recordatorio mensual de carga" in readme

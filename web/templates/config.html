@@ -89,7 +89,7 @@
     <div class="card" style="padding:clamp(20px,3vw,32px)">
       <div class="row" style="justify-content:space-between;margin-bottom:16px">
         <span class="eyebrow">Contrato maestro (opcional)</span>
-        <a class="btn btn--ghost" href="/config/contrato">{{ "Editar" if contrato else "Definir" }}</a>
+        <a class="btn btn--ghost" href="/config/contrato">{{ "Editar" if contrato else "Definir (opcional)" }}</a>
       </div>
       {% if contrato %}
       <div class="stat-grid">
@@ -100,7 +100,11 @@
         {{ ui.stat("Reajuste", contrato.regla_reajuste or "—") }}
       </div>
       {% else %}
-      {{ ui.alert("No es necesario para operar. Si lo defines, el canon se descuenta aparte del resultado; si no, inclúyelo en los gastos fijos del informe mensual.", "info") }}
+      <p class="card-note">
+        No es necesario para operar. En esta operación el canon que le pagas a la propietaria
+        va <strong>dentro de los gastos fijos</strong> de cada informe mensual. Si algún día
+        quieres separarlo y verlo aparte, defínelo aquí y baja el umbral de gasto para verde.
+      </p>
       {% endif %}
     </div>
 

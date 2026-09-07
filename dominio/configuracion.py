@@ -25,8 +25,12 @@ CLAVES_CONFIGURACION: list[ClaveConfig] = [
     ClaveConfig(
         "gasto_maximo_pct_verde",
         "Gasto máximo para verde (%)",
-        "Porcentaje del ingreso que pueden consumir los gastos sin que el semáforo de "
-        "resultado deje de estar verde.",
+        "Porcentaje del ingreso que pueden consumir la comisión y TODOS los gastos del "
+        "informe sin que el semáforo de resultado deje de estar verde. Calíbralo según "
+        "dónde esté el canon de la propietaria: si va dentro de los gastos fijos, el "
+        "umbral tiene que ser alto (≈80); si lo separas en un contrato maestro, bajo "
+        "(≈45). Para afinarlo, toma un mes bueno y calcula "
+        "(comisión + gastos fijos + gastos variables) ÷ ingreso.",
         "float",
     ),
     ClaveConfig(
