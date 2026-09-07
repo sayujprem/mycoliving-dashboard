@@ -154,6 +154,13 @@ rclone lsd gdrive:     # debe listar el contenido de "Seguimiento estratégico"
 
 Fijar `root_folder_id` es lo que hace que el respaldo escriba directamente en esa carpeta.
 
+> **Fecha de caducidad conocida.** Ese comando usa el identificador OAuth compartido de
+> rclone, que Google está retirando **durante 2026**. Cuando deje de funcionar, el respaldo
+> empezará a fallar con un error de autenticación (visible en Configuración → Último
+> respaldo, que es justo para lo que existe). La solución es crear un client_id propio en
+> Google Cloud Console, gratis, siguiendo https://rclone.org/drive/#making-your-own-client-id
+> y luego `rclone config update gdrive client_id <id> client_secret <secreto>`.
+
 ### Programarlo
 
 ```bash
