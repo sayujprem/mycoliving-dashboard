@@ -8,14 +8,19 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from config import ES_PRODUCCION
 
-# La aplicacion no carga JavaScript de terceros ni usa scripts en linea. La unica
-# excepcion son las tipografias de Google, que base.html ya trae. Todo lo demas queda
-# prohibido: si alguien logra inyectar una etiqueta <script>, el navegador no la ejecuta.
+# La aplicacion no carga JavaScript de terceros ni usa scripts en linea: el unico
+# script es /static/app.js. Si alguien logra inyectar una etiqueta <script> o un
+# atributo onclick, el navegador no lo ejecuta.
+#
+# Los estilos si se permiten en linea ('unsafe-inline'), y es una concesion consciente:
+# las plantillas llevan 179 atributos style="..." que forman parte del diseno. Mover
+# todos a clases seria reescribir la interfaz para cerrar un riesgo marginal, porque
+# con el autoescape de Jinja activo no hay por donde inyectar CSS.
 _CSP = "; ".join(
     (
         "default-src 'self'",
         "script-src 'self'",
-        "style-src 'self' https://fonts.googleapis.com",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data:",
         "form-action 'self'",

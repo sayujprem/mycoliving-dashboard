@@ -27,7 +27,6 @@ from db.repositorio import (
     eliminar_capex,
     eliminar_recordatorio,
     eliminar_reporte,
-    get_activo,
     get_capex,
     get_configuracion,
     get_recordatorios,
@@ -277,7 +276,3 @@ def umbrales_distintos(activo_id: int) -> dict[str, str]:
             distintos[clave] = f"{actual} (la demo asume {esperado})"
     return distintos
 
-
-def activo_por_defecto() -> int | None:
-    activo = get_activo()
-    return activo["id"] if activo else None

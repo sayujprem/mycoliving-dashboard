@@ -2,12 +2,10 @@
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
 
 from db.init_db import drop_all, init_db
-from db.repositorio import get_activo
-from main import app
 from motor.resultado import calcular_resultado, consolidar
+from tests.apoyo import nuevo_cliente
 
 
 def test_calcular_resultado_con_datos_no_inmobiliarios():
@@ -46,7 +44,7 @@ def test_modulo_motor_no_menciona_el_dominio():
 def client():
     drop_all()
     init_db()
-    c = TestClient(app)
+    c = nuevo_cliente()
     c.post(
         "/config/activo",
         data={"nombre": "C", "tipo": "coliving", "unidades_totales": "5",

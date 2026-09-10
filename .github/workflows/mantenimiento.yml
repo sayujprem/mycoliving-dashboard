@@ -1,0 +1,31 @@
+# Mantenimiento cada cuatro dias. Hace dos cosas con una sola consulta:
+#
+# 1. Evita que Supabase pause la base. El plan gratuito pausa un proyecto tras 7 dias
+#    sin actividad *en la base de datos* (visitar el dashboard no cuenta), y despertarlo
+#    tarda unos 30 segundos: el primer usuario de la semana veria un error.
+# 2. Borra los registros de intentos de acceso de mas de un dia y los tokens de correo
+#    vencidos. La politica de privacidad promete que esos datos (IP y correo) no duran
+#    mas de 7 dias; con esta cadencia duran como maximo 5.
+#
+# Usa el mismo secreto que el respaldo: DATABASE_URL_RESPALDO.
+
+name: Mantenimiento de la base
+
+on:
+  schedule:
+    - cron: "0 12 */4 * *"   # cada cuatro dias
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mantenimiento:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # psql viene instalado en el runner. Para una llamada a funcion la version da igual.
+      - name: Limpiar registros vencidos
+        env:
+          DATABASE_URL_RESPALDO: ${{ secrets.DATABASE_URL_RESPALDO }}
+        run: psql "$DATABASE_URL_RESPALDO" -tAc "SELECT limpiar_intentos_viejos()" > /dev/null && echo "Base activa y limpia."

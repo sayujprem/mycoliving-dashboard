@@ -3,13 +3,12 @@ import os
 import re
 
 import pytest
-from fastapi.testclient import TestClient
 
 from db.init_db import drop_all, init_db
-from db.repositorio import get_activo, get_asesoria
+from db.repositorio import get_asesoria
 from dominio.asesoria import SISTEMA_ASESORIA, armar_contexto, generar_y_guardar
-from main import app
 from motor.asesor_ia import validar_contexto
+from tests.apoyo import activo_actual, nuevo_cliente
 
 
 class _Bloque:
@@ -38,7 +37,7 @@ class _ClienteOK:
 def client():
     drop_all()
     init_db()
-    c = TestClient(app)
+    c = nuevo_cliente(asesoria=True)
     c.post(
         "/config/activo",
         data={"nombre": "Coliving Granada", "tipo": "coliving", "unidades_totales": "5",
@@ -74,7 +73,7 @@ def client():
 
 
 def test_armar_contexto_produce_un_payload_valido(client):
-    ctx = armar_contexto(get_activo()["id"], 2026, 7)
+    ctx = armar_contexto(activo_actual()["id"], 2026, 7)
     assert ctx is not None
     assert validar_contexto(ctx) == []
     assert ctx["resultado_mes"] < 0  # 2 de 5 unidades con canon de 3M
@@ -92,9 +91,9 @@ def test_generar_y_guardar_persiste_con_cliente_falso(client):
         "recomendacion_reinversion": "No reinvertir este mes; cubrir el faltante de 1.050.000 con la reserva.",
         "nota_fiscal": "El mes no generó renta gravable por este activo. Estimación basada únicamente en el ingreso de este activo.",
     }
-    r = generar_y_guardar(get_activo()["id"], 2026, 7, api_key="x", cliente=_ClienteOK(entrada))
+    r = generar_y_guardar(activo_actual()["id"], 2026, 7, api_key="x", cliente=_ClienteOK(entrada))
     assert r.ok is True
-    fila = get_asesoria(get_activo()["id"], 2026, 7)
+    fila = get_asesoria(activo_actual()["id"], 2026, 7)
     assert fila is not None
     assert "2 de 5 unidades" in fila["texto_asesoria"]
     assert "reserva" in fila["texto_asesoria"].lower()
@@ -106,7 +105,7 @@ def test_ruta_post_sin_api_key_muestra_error_y_no_guarda(client):
     r = client.post("/asesoria/2026/7", follow_redirects=False)
     assert r.status_code == 303
     assert "/historico?error_asesoria=" in r.headers["location"]
-    assert get_asesoria(get_activo()["id"], 2026, 7) is None
+    assert get_asesoria(activo_actual()["id"], 2026, 7) is None
     pagina = client.get("/historico" + r.headers["location"].split("/historico", 1)[1])
     assert "No se pudo generar la asesoría" in pagina.text
 
@@ -122,8 +121,8 @@ def test_historico_ofrece_generar_cuando_no_hay_asesoria(client):
     reason="requiere ANTHROPIC_API_KEY para una corrida real",
 )
 def test_corrida_real_nombra_una_cifra(client):
-    r = generar_y_guardar(get_activo()["id"], 2026, 7)
+    r = generar_y_guardar(activo_actual()["id"], 2026, 7)
     assert r.ok is True, r.error
-    fila = get_asesoria(get_activo()["id"], 2026, 7)
+    fila = get_asesoria(activo_actual()["id"], 2026, 7)
     assert re.search(r"\d", fila["texto_asesoria"])  # nombra alguna cifra
     assert len(fila["texto_asesoria"]) > 60  # no es una línea genérica

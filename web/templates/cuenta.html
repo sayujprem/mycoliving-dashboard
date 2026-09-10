@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Tu cuenta · MyColiving{% endblock %}
+{% block content %}
+<section style="max-width:640px">
+  <span class="eyebrow">Cuenta</span>
+  <h1 style="font-size:clamp(26px,4vw,38px);margin:14px 0 18px">Tu cuenta</h1>
+
+  {% if aviso %}{{ ui.alert(aviso, "info") }}{% endif %}
+
+  <div class="card" style="padding:clamp(20px,3vw,28px);margin-top:14px">
+    <div class="card-head"><h3>Datos</h3></div>
+    <div class="stat-grid" style="margin-top:12px">
+      {{ ui.stat("Correo", usuario.email) }}
+      {{ ui.stat("Asesoría con IA", "Habilitada" if usuario.asesoria_habilitada else "No habilitada") }}
+    </div>
+  </div>
+
+  <form method="post" action="/cuenta/password" class="card" style="padding:clamp(20px,3vw,28px);margin-top:14px">{{ ui.csrf(csrf_token) }}
+    <div class="card-head"><h3>Cambiar la contraseña</h3></div>
+    <p class="card-note" style="margin:6px 0 16px">Al cambiarla se cierran las sesiones abiertas en otros dispositivos.</p>
+    {% for e in errores %}{{ ui.alert(e, "error") }}{% endfor %}
+    <div class="field" style="margin-top:10px">
+      <label for="actual">Contraseña actual</label>
+      <input type="password" id="actual" name="actual" autocomplete="current-password" required>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label for="password">Nueva</label>
+        <input type="password" id="password" name="password" autocomplete="new-password" minlength="10" maxlength="128" required>
+      </div>
+      <div class="field">
+        <label for="confirmacion">Repítela</label>
+        <input type="password" id="confirmacion" name="confirmacion" autocomplete="new-password" minlength="10" maxlength="128" required>
+      </div>
+    </div>
+    <button class="btn" type="submit">Guardar</button>
+  </form>
+
+  <form method="post" action="/cuenta/eliminar" class="card" style="padding:clamp(20px,3vw,28px);margin-top:14px"
+        data-confirmar="Se borrará tu cuenta, tu activo y todo su histórico. No se puede deshacer. ¿Seguir?">{{ ui.csrf(csrf_token) }}
+    <div class="card-head"><h3>Eliminar la cuenta</h3></div>
+    <p class="card-note" style="margin:6px 0 16px">Borra la cuenta, el activo, todos los meses registrados y las asesorías generadas. Es inmediato y definitivo: no queda copia en la plataforma.</p>
+    {% for e in errores_eliminar %}{{ ui.alert(e, "error") }}{% endfor %}
+    <div class="field" style="margin-top:10px">
+      <label for="password_eliminar">Escribe tu contraseña para confirmar</label>
+      <input type="password" id="password_eliminar" name="password" autocomplete="current-password" required>
+    </div>
+    <button class="btn btn--ghost" type="submit" style="color:var(--rojo);border-color:var(--rojo)">Eliminar mi cuenta</button>
+  </form>
+</section>
+{% endblock %}

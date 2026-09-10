@@ -7,17 +7,16 @@ No hace falta simular el API: conftest.py deja ANTHROPIC_API_KEY vacía, así qu
 generación falla de forma determinista con "No hay ANTHROPIC_API_KEY configurada."
 """
 import pytest
-from fastapi.testclient import TestClient
 
 from db.init_db import drop_all, init_db
-from main import app
+from tests.apoyo import nuevo_cliente
 
 
 @pytest.fixture
 def client():
     drop_all()
     init_db()
-    c = TestClient(app)
+    c = nuevo_cliente(asesoria=True)
     c.post("/config/activo", data={"nombre": "Coliving Granada", "tipo": "coliving",
            "unidades_totales": "5", "comision_administrador_pct": "10", "moneda": "COP",
            "ubicacion": "Armenia"}, follow_redirects=False)

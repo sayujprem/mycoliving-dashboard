@@ -70,6 +70,8 @@ def usuario_actual(request: Request) -> dict | None:
         return None
 
     fijar_usuario(usuario["id"])
+    # Lo lee web/templates_env.py para pintar el menu de cuenta sin otra consulta.
+    request.state.usuario = usuario
     return usuario
 
 

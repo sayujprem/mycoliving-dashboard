@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Activar cuenta · MyColiving{% endblock %}
+{% block content %}
+<section style="max-width:640px">
+  <span class="eyebrow">Cuenta · Verificación</span>
+  <h1 style="font-size:clamp(26px,4vw,38px);margin:14px 0 18px">Activar la cuenta</h1>
+
+  {% if invalido %}
+    {{ ui.alert("El enlace venció o ya se usó. Entra con tu correo y pide uno nuevo.", "error") }}
+    <p style="margin-top:14px"><a class="btn" href="/entrar">Entrar</a></p>
+  {% else %}
+    {# Un botón y no una activación directa al abrir el enlace: los filtros antivirus
+       de los buzones abren los enlaces para inspeccionarlos y gastarían el token. #}
+    <form method="post" action="/verificar/{{ token }}" class="card" style="padding:clamp(20px,3vw,28px)">{{ ui.csrf(csrf_token) }}
+      <p style="margin:0 0 18px">Confirma que este correo es tuyo para empezar a usar la plataforma.</p>
+      <button class="btn" type="submit">Confirmar mi correo</button>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Confirma tu correo · MyColiving{% endblock %}
+{% block content %}
+<section style="max-width:640px">
+  <span class="eyebrow">Cuenta · Verificación</span>
+  <h1 style="font-size:clamp(26px,4vw,38px);margin:14px 0 18px">Falta confirmar tu correo</h1>
+
+  {% if aviso %}{{ ui.alert(aviso, "info") }}{% endif %}
+
+  <div class="card" style="padding:clamp(20px,3vw,28px);margin-top:14px">
+    <p style="margin:0">Te enviamos un enlace a <strong>{{ email }}</strong>. Ábrelo para activar la cuenta.</p>
+    <p class="muted" style="margin:12px 0 18px">Si no aparece, revisa la carpeta de correo no deseado.</p>
+    <form method="post" action="/verificar-aviso/reenviar" style="margin:0">{{ ui.csrf(csrf_token) }}
+      <button class="btn btn--ghost" type="submit">Enviar otro enlace</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

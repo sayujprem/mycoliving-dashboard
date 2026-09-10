@@ -5,19 +5,17 @@ que no es solo un DELETE: arrastra las unidades, la asesoría del mes y obliga a
 el fondo de reserva.
 """
 import pytest
-from fastapi.testclient import TestClient
 
-from db.connection import get_connection
+from db.connection import db_cursor
 from db.init_db import drop_all, init_db
 from db.repositorio import (
-    get_activo,
     get_asesoria,
     get_reporte,
     get_reportes,
     get_reserva_movimientos,
 )
 from dominio.asesoria import generar_y_guardar
-from main import app
+from tests.apoyo import activo_actual, nuevo_cliente
 
 
 class _Bloque:
@@ -41,7 +39,7 @@ class _ClienteOK:
 def client():
     drop_all()
     init_db()
-    c = TestClient(app)
+    c = nuevo_cliente()
     c.post("/config/activo", data={"nombre": "Coliving Granada", "tipo": "coliving",
            "unidades_totales": "5", "comision_administrador_pct": "10", "moneda": "COP",
            "ubicacion": "Armenia"}, follow_redirects=False)
@@ -66,16 +64,14 @@ def _mes(client, mes, arrendadas=4):
 
 
 def _unidades_en_bd(anio, mes):
-    conn = get_connection()
-    try:
-        return conn.execute(
+    with db_cursor() as cur:
+        cur.execute(
             "SELECT COUNT(*) AS n FROM reporte_unidad u "
             "JOIN reporte_mensual r ON r.id = u.reporte_mensual_id "
-            "WHERE r.anio = ? AND r.mes = ?",
+            "WHERE r.anio = %s AND r.mes = %s",
             (anio, mes),
-        ).fetchone()["n"]
-    finally:
-        conn.close()
+        )
+        return cur.fetchone()["n"]
 
 
 def test_quitar_mes_borra_reporte_y_unidades(client):
@@ -85,13 +81,13 @@ def test_quitar_mes_borra_reporte_y_unidades(client):
     r = client.post("/historico/2026/7/eliminar", follow_redirects=False)
     assert r.status_code == 303
     assert r.headers["location"] == "/historico"
-    assert get_reporte(get_activo()["id"], 2026, 7) == (None, [])
+    assert get_reporte(activo_actual()["id"], 2026, 7) == (None, [])
     assert _unidades_en_bd(2026, 7) == 0
 
 
 def test_quitar_mes_borra_su_asesoria(client):
     _mes(client, 7)
-    activo_id = get_activo()["id"]
+    activo_id = activo_actual()["id"]
     entrada = {
         "causa_brecha": "Ocupación de 4 de 5 unidades.",
         "recomendacion_reinversion": "Sostener la reserva.",
@@ -108,7 +104,7 @@ def test_quitar_mes_recalcula_la_reserva(client):
     """El saldo es acumulativo: si no se recalcula, los meses que quedan mienten."""
     _mes(client, 7)
     _mes(client, 8)
-    activo_id = get_activo()["id"]
+    activo_id = activo_actual()["id"]
     assert len(get_reserva_movimientos(activo_id)) == 2
 
     client.post("/historico/2026/7/eliminar", follow_redirects=False)
@@ -124,17 +120,17 @@ def test_quitar_un_mes_no_toca_los_demas(client):
     _mes(client, 8)
     client.post("/historico/2026/7/eliminar", follow_redirects=False)
 
-    reporte, unidades = get_reporte(get_activo()["id"], 2026, 8)
+    reporte, unidades = get_reporte(activo_actual()["id"], 2026, 8)
     assert reporte is not None
     assert len(unidades) == 5
-    assert len(get_reportes(get_activo()["id"])) == 1
+    assert len(get_reportes(activo_actual()["id"])) == 1
 
 
 def test_quitar_un_mes_inexistente_no_revienta(client):
     _mes(client, 7)
     r = client.post("/historico/2020/1/eliminar", follow_redirects=False)
     assert r.status_code == 303
-    assert len(get_reportes(get_activo()["id"])) == 1
+    assert len(get_reportes(activo_actual()["id"])) == 1
 
 
 def test_historico_ofrece_quitar_cada_mes(client):
@@ -143,4 +139,4 @@ def test_historico_ofrece_quitar_cada_mes(client):
     assert 'action="/historico/2026/7/eliminar"' in html
     assert ">Quitar<" in html
     # El borrado es irreversible y arrastra la asesoría: pide confirmación.
-    assert "confirm(" in html
+    assert "data-confirmar=" in html

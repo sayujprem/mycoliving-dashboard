@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Administración · MyColiving{% endblock %}
+{% block content %}
+<section>
+  <span class="eyebrow">Administración</span>
+  <h1 style="font-size:clamp(26px,4vw,38px);margin:14px 0 6px">Cuentas</h1>
+  <p class="muted" style="margin:0 0 18px">La asesoría con IA gasta crédito del API de Anthropic. Nace apagada en cada cuenta y se enciende aquí.</p>
+
+  <div class="card" style="padding:0;overflow:auto">
+    <table class="table">
+      <thead>
+        <tr><th>Correo</th><th>Alta</th><th>Verificado</th><th>Activo</th><th>Informes usados</th><th>Asesoría</th></tr>
+      </thead>
+      <tbody>
+        {% for c in cuentas %}
+        <tr>
+          <td>{{ c.email }}{% if c.es_admin %} {{ ui.chip("admin", "outline") }}{% endif %}</td>
+          <td class="mono">{{ c.creado_en.strftime("%Y-%m-%d") }}</td>
+          <td>{{ "Sí" if c.email_verificado_en else "No" }}</td>
+          <td>{{ c.activo_nombre or "—" }}</td>
+          <td class="mono">{{ c.asesorias_usadas }}</td>
+          <td>
+            <form method="post" action="/admin/cuentas/{{ c.id }}/asesoria" style="display:inline">{{ ui.csrf(csrf_token) }}
+              <input type="hidden" name="habilitar" value="{{ '0' if c.asesoria_habilitada else '1' }}">
+              {% if c.asesoria_habilitada %}
+                <button class="btn" type="submit" style="padding:6px 12px;font-size:12px">Habilitada</button>
+              {% else %}
+                <button class="btn btn--ghost" type="submit" style="padding:6px 12px;font-size:12px">Habilitar</button>
+              {% endif %}
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

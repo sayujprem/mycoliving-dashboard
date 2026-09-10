@@ -13,6 +13,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from config import ES_PRODUCCION, SESSION_COOKIE, SESSION_MAX_AGE, SESSION_SECRET
 from web.auth import CSRFMiddleware, Redirigir
 from web.routes import router
+from web.rutas_auth import router as router_cuenta
 from web.seguridad import CabecerasSeguridad
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -39,6 +40,7 @@ app.add_middleware(
 app.add_middleware(CabecerasSeguridad)
 
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "web" / "static")), name="static")
+app.include_router(router_cuenta)
 app.include_router(router)
 
 

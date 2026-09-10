@@ -11,7 +11,7 @@
 
   {% for e in errores %}{{ ui.alert(e, "error") }}{% endfor %}
 
-  <form method="post" action="/config/contrato" class="card" style="padding:clamp(20px,3vw,28px)">
+  <form method="post" action="/config/contrato" class="card" style="padding:clamp(20px,3vw,28px)">{{ ui.csrf(csrf_token) }}
     <div class="field">
       <label for="canon_mensual">Canon mensual</label>
       <input type="number" step="0.01" min="0" id="canon_mensual" name="canon_mensual"

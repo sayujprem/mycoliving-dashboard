@@ -24,7 +24,7 @@
              "tono": "rojo" if estado.estado == "vencido" else ("amarillo" if estado.estado == "proximo" else "verde"),
            }) }}
         <form method="post" action="/config/recordatorios/{{ r.id }}/eliminar"
-              style="padding:0 12px 8px;text-align:right">
+              style="padding:0 12px 8px;text-align:right">{{ ui.csrf(csrf_token) }}
           <button class="btn btn--ghost" type="submit" style="padding:5px 11px;font-size:12px">Quitar</button>
         </form>
       {% endfor %}
@@ -34,7 +34,7 @@
   {{ ui.alert("Todavía no hay recordatorios.", "info") }}
   {% endif %}
 
-  <form method="post" action="/config/recordatorios" class="card" style="padding:clamp(20px,3vw,28px);margin-top:14px">
+  <form method="post" action="/config/recordatorios" class="card" style="padding:clamp(20px,3vw,28px);margin-top:14px">{{ ui.csrf(csrf_token) }}
     <div class="form-row">
       <div class="field">
         <label for="categoria">Categoría</label>

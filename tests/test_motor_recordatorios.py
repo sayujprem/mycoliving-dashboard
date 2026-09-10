@@ -3,13 +3,12 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
 
 from db.init_db import drop_all, init_db
-from db.repositorio import get_activo, get_recordatorios, set_configuracion
+from db.repositorio import get_recordatorios, set_configuracion
 from dominio.recordatorios import clasificar_recordatorios
-from main import app
 from motor.recordatorios import AL_DIA, PROXIMO, VENCIDO, clasificar, proxima_fecha, sumar_meses
+from tests.apoyo import activo_actual, nuevo_cliente
 
 
 def test_sumar_meses_ajusta_el_dia_al_fin_de_mes():
@@ -68,7 +67,7 @@ def test_clasifica_seguro_periodico_y_contrato_fijo():
 def client():
     drop_all()
     init_db()
-    c = TestClient(app)
+    c = nuevo_cliente()
     c.post(
         "/config/activo",
         data={"nombre": "C", "tipo": "coliving", "unidades_totales": "5",
@@ -86,9 +85,9 @@ def test_alta_de_recordatorio_periodico_calcula_proxima_fecha(client):
         follow_redirects=False,
     )
     assert r.status_code == 303
-    recs = get_recordatorios(get_activo()["id"])
+    recs = get_recordatorios(activo_actual()["id"])
     assert len(recs) == 1
-    assert recs[0]["proxima_fecha"] == "2027-01-10"
+    assert str(recs[0]["proxima_fecha"]) == "2027-01-10"
 
 
 def test_recordatorio_sin_frecuencia_ni_fecha_fija_se_rechaza(client):
@@ -97,11 +96,11 @@ def test_recordatorio_sin_frecuencia_ni_fecha_fija_se_rechaza(client):
         data={"categoria": "contrato", "descripcion": "X"},
     )
     assert r.status_code == 400
-    assert get_recordatorios(get_activo()["id"]) == []
+    assert get_recordatorios(activo_actual()["id"]) == []
 
 
 def test_categorias_salen_de_configuracion(client):
-    set_configuracion(get_activo()["id"], "categorias_recordatorio", "mantenimiento, seguro, contrato")
+    set_configuracion(activo_actual()["id"], "categorias_recordatorio", "mantenimiento, seguro, contrato")
     r = client.get("/config/recordatorios")
     assert '<option value="mantenimiento">' in r.text
     assert '<option value="contrato">' in r.text

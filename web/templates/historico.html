@@ -83,19 +83,21 @@
             {% if f.tiene_asesoria %}
               <a class="btn btn--ghost" style="padding:6px 12px;font-size:12px"
                  href="/asesoria/{{ f.anio }}/{{ f.mes }}">Ver</a>
-            {% else %}
-              <form method="post" action="/asesoria/{{ f.anio }}/{{ f.mes }}" style="display:inline">
+            {% elif usuario_sesion.asesoria_habilitada %}
+              <form method="post" action="/asesoria/{{ f.anio }}/{{ f.mes }}" style="display:inline">{{ ui.csrf(csrf_token) }}
                 <input type="hidden" name="origen" value="historico">
                 <button class="btn btn--ghost" type="submit" style="padding:6px 12px;font-size:12px">Generar</button>
               </form>
+            {% else %}
+              <span class="muted">—</span>
             {% endif %}
           </td>
           <td style="text-align:right;white-space:nowrap">
             <a class="btn btn--ghost" style="padding:6px 12px;font-size:12px"
                href="/registro?anio={{ f.anio }}&mes={{ f.mes }}">Editar</a>
-            <form method="post" action="/historico/{{ f.anio }}/{{ f.mes }}/eliminar" style="display:inline">
-              <button class="btn btn--ghost" type="submit" style="padding:6px 12px;font-size:12px"
-                      onclick="return confirm('¿Quitar {{ meses[f.mes - 1] }} {{ f.anio }}? También se borra la asesoría generada para ese mes.')">Quitar</button>
+            <form method="post" action="/historico/{{ f.anio }}/{{ f.mes }}/eliminar" style="display:inline"
+                  data-confirmar="¿Quitar {{ meses[f.mes - 1] }} {{ f.anio }}? También se borra la asesoría generada para ese mes.">{{ ui.csrf(csrf_token) }}
+              <button class="btn btn--ghost" type="submit" style="padding:6px 12px;font-size:12px">Quitar</button>
             </form>
           </td>
         </tr>

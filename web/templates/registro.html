@@ -11,7 +11,7 @@
 
   {% for e in errores %}{{ ui.alert(e, "error") }}{% endfor %}
 
-  <form method="post" action="/registro" class="card" style="padding:clamp(20px,3vw,28px)">
+  <form method="post" action="/registro" class="card" style="padding:clamp(20px,3vw,28px)">{{ ui.csrf(csrf_token) }}
     <div class="form-row">
       <div class="field">
         <label for="mes">Mes</label>

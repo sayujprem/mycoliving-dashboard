@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
 </head>
 <body>
   <header class="app-header">
@@ -15,16 +16,36 @@
       <span class="brand-mark"><span></span></span>
       <span class="brand-name">My Coliving Dashboard</span>
     </a>
+    {% if usuario_sesion %}
     <nav class="app-nav">
       <a href="/" class="{{ 'is-active' if active == 'panel' }}">Panel</a>
       <a href="/registro" class="{{ 'is-active' if active == 'registro' }}">Registrar mes</a>
       <a href="/historico" class="{{ 'is-active' if active == 'historico' }}">Histórico</a>
       <a href="/config" class="{{ 'is-active' if active == 'config' }}">Configuración</a>
     </nav>
-    <span class="eyebrow">{% block header_aside %}Oficina familiar · un solo activo{% endblock %}</span>
+    {% endif %}
+    <span class="eyebrow">{% block header_aside %}
+      {%- if usuario_sesion -%}
+        <span class="row" style="gap:14px">
+          {% if usuario_sesion.es_admin %}<a href="/admin" style="color:inherit">Admin</a>{% endif %}
+          <a href="/cuenta" style="color:inherit">{{ usuario_sesion.email }}</a>
+          <form method="post" action="/salir" style="margin:0;display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="eyebrow" style="background:none;border:0;padding:0;cursor:pointer">Salir</button>
+          </form>
+        </span>
+      {%- else -%}
+        Seguimiento de un activo en arriendo
+      {%- endif -%}
+    {% endblock %}</span>
   </header>
   <main class="app-main">
     {% block content %}{% endblock %}
+    <p class="mono muted" style="font-size:11px;margin-top:48px">
+      <a href="/privacidad" style="color:inherit">Privacidad</a> ·
+      <a href="/terminos" style="color:inherit">Términos</a> ·
+      <a href="https://github.com/sayujprem/mycoliving-dashboard" rel="noopener noreferrer" style="color:inherit">Código fuente</a>
+    </p>
   </main>
 </body>
 </html>

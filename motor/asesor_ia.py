@@ -7,13 +7,25 @@ aplicación: cualquier problema vuelve como `ResultadoAsesoria(ok=False, error=.
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 from jsonschema import Draft202012Validator
 
-from config import MODELO_ASESORIA
+from config import ANTHROPIC_TIMEOUT, MODELO_ASESORIA
 
-MAX_TOKENS = 4000
+log = logging.getLogger(__name__)
+
+# Sonnet 5 razona antes de responder, y esos tokens cuentan dentro de max_tokens. Con
+# 4000, un razonamiento largo agotaba el cupo antes de terminar la llamada a la
+# herramienta y el informe salia incompleto. 8000 deja margen; el costo maximo por
+# informe sigue por debajo de 0.10 USD.
+MAX_TOKENS = 8000
+
+# El contexto llega ya calculado y la tarea es redactar un analisis corto, no resolver
+# un problema abierto. "medium" rinde igual en este tipo de trabajo y razona menos, que
+# es lo que se paga.
+ESFUERZO = "medium"
 
 CAMPOS_ASESORIA = ("causa_brecha", "recomendacion_reinversion", "nota_fiscal")
 
@@ -121,23 +133,32 @@ def _prompt_usuario(c: dict) -> str:
 
 
 def _mensaje_error(exc: Exception) -> str:
+    """Traduce el fallo a un mensaje fijo para el usuario.
+
+    El detalle crudo del proveedor va al log, nunca a la pantalla: puede incluir
+    identificadores de la cuenta de Anthropic, y al usuario final no le sirve.
+    """
+    log.warning("Fallo del API de Anthropic: %r", exc)
     try:
         import anthropic
 
         if isinstance(exc, anthropic.AuthenticationError):
-            return "La API key de Anthropic no es válida."
+            return "El servicio de asesoría no está disponible. Avisa al administrador."
         if isinstance(exc, anthropic.RateLimitError):
-            return "El API de Anthropic está limitando las solicitudes; reintenta en un momento."
-        if isinstance(exc, anthropic.APIStatusError):
-            detalle = (getattr(exc, "message", "") or str(exc)).strip()
-            if "credit" in detalle.lower():
-                return "La cuenta de Anthropic no tiene crédito disponible."
-            return f"El API de Anthropic respondió (error {exc.status_code}): {detalle[:300]}"
+            return "El servicio de asesoría está saturado. Intenta en unos minutos."
+        if isinstance(exc, anthropic.APITimeoutError):
+            return "El informe tardó demasiado en generarse. Intenta de nuevo."
         if isinstance(exc, anthropic.APIConnectionError):
-            return "No se pudo conectar con el API de Anthropic."
+            return "No se pudo conectar con el servicio de asesoría. Intenta de nuevo."
+        if isinstance(exc, anthropic.APIStatusError):
+            detalle = (getattr(exc, "message", "") or str(exc)).lower()
+            if "credit" in detalle or "spend" in detalle or "limit" in detalle:
+                # Se agoto el credito o se toco el tope de gasto de la consola.
+                return "Se alcanzó el tope mensual de asesorías. Vuelve a intentar el próximo mes."
+            return "El servicio de asesoría devolvió un error. Intenta de nuevo más tarde."
     except Exception:  # noqa: BLE001
         pass
-    return f"No se pudo generar la asesoría: {exc}"
+    return "No se pudo generar la asesoría. Intenta de nuevo más tarde."
 
 
 def generar_asesoria(
@@ -154,10 +175,19 @@ def generar_asesoria(
             import anthropic
 
             headers = {"anthropic-workspace-id": workspace_id} if workspace_id else None
-            cliente = anthropic.Anthropic(api_key=api_key, default_headers=headers)
+            cliente = anthropic.Anthropic(
+                api_key=api_key,
+                default_headers=headers,
+                # La funcion en Vercel tiene su propio limite de duracion (vercel.json).
+                # Sin reintentos automaticos, el peor caso es un solo timeout y queda
+                # por debajo de ese limite; el usuario puede volver a pulsar.
+                timeout=ANTHROPIC_TIMEOUT,
+                max_retries=0,
+            )
         respuesta = cliente.messages.create(
             model=MODELO_ASESORIA,
             max_tokens=MAX_TOKENS,
+            output_config={"effort": ESFUERZO},
             system=sistema,
             tools=[HERRAMIENTA_ASESORIA],
             tool_choice={"type": "tool", "name": "entregar_asesoria"},
@@ -165,6 +195,13 @@ def generar_asesoria(
         )
     except Exception as exc:  # noqa: BLE001 - un fallo del API deja la asesoría pendiente
         return ResultadoAsesoria(ok=False, error=_mensaje_error(exc))
+
+    parada = getattr(respuesta, "stop_reason", None)
+    if parada == "refusal":
+        return ResultadoAsesoria(ok=False, error="El modelo no pudo generar este informe. Revisa las notas del activo.")
+    if parada == "max_tokens":
+        log.warning("Asesoría cortada por max_tokens (%s)", MAX_TOKENS)
+        return ResultadoAsesoria(ok=False, error="El informe quedó incompleto. Intenta de nuevo.")
 
     for bloque in getattr(respuesta, "content", []):
         if getattr(bloque, "type", None) == "tool_use" and getattr(bloque, "name", None) == "entregar_asesoria":

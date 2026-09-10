@@ -82,16 +82,22 @@ ANTHROPIC_WORKSPACE_ID = os.environ.get("ANTHROPIC_WORKSPACE_ID", "")
 # entrada y 10 por millon de salida: alrededor de 0.05 USD por informe.
 MODELO_ASESORIA = os.environ.get("MYCOLIVING_MODELO", "claude-sonnet-5")
 
-# Tope de espera de la llamada al modelo. La funcion en Vercel tiene un limite propio
-# (ver vercel.json), asi que este numero debe quedar por debajo para que el error lo
-# de el SDK con un mensaje util, en vez de morir la funcion entera.
-ANTHROPIC_TIMEOUT = int(os.environ.get("MYCOLIVING_TIMEOUT", "45"))
+# Tope de espera de la llamada al modelo, en segundos. La funcion en Vercel se corta a
+# los 120 (maxDuration en vercel.json), asi que este numero queda por debajo: si el
+# modelo tarda, el error lo da el SDK con un mensaje util en vez de morir la funcion.
+ANTHROPIC_TIMEOUT = int(os.environ.get("MYCOLIVING_TIMEOUT", "100"))
 
 
-# --- Correo (Resend) ---------------------------------------------------------
+# --- Correo (SMTP de Gmail) --------------------------------------------------
 
-RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
-RESEND_REMITENTE = os.environ.get("RESEND_REMITENTE", "MyColiving <onboarding@resend.dev>")
+# Cuenta que envia los correos de verificacion y recuperacion. Es la misma que figura
+# como contacto de privacidad, asi que las respuestas de los usuarios llegan ahi.
+SMTP_USUARIO = os.environ.get("SMTP_USUARIO", "privacidad.mycoliving@gmail.com").strip()
+
+# Contrasena de aplicacion de Google (16 letras), no la contrasena de la cuenta. Se
+# crea en myaccount.google.com/apppasswords y exige la verificacion en dos pasos. Google
+# la muestra en grupos de cuatro separados por espacios; los espacios se descartan.
+SMTP_CLAVE = os.environ.get("SMTP_CLAVE", "").replace(" ", "")
 
 # Correo de la cuenta que se marca como administradora al migrar los datos iniciales.
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "").strip().lower()

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Recuperar contraseña · MyColiving{% endblock %}
+{% block content %}
+<section style="max-width:640px">
+  <span class="eyebrow">Cuenta · Recuperación</span>
+  <h1 style="font-size:clamp(26px,4vw,38px);margin:14px 0 18px">Recuperar la contraseña</h1>
+
+  {% for e in errores %}{{ ui.alert(e, "error") }}{% endfor %}
+
+  {% if enviado %}
+    <div class="card" style="padding:clamp(20px,3vw,28px)">
+      <p style="margin:0">Si ese correo tiene una cuenta, te enviamos un enlace para elegir una contraseña nueva. Vence en una hora y solo sirve una vez.</p>
+      <p class="muted" style="margin:12px 0 0"><a href="/entrar" style="font-weight:600">Volver a entrar</a></p>
+    </div>
+  {% else %}
+    <form method="post" action="/recuperar" class="card" style="padding:clamp(20px,3vw,28px);margin-top:14px">{{ ui.csrf(csrf_token) }}
+      <div class="field">
+        <label for="email">Correo de la cuenta</label>
+        <input type="email" id="email" name="email" autocomplete="email" required autofocus>
+      </div>
+      <div class="row">
+        <button class="btn" type="submit">Enviar enlace</button>
+        <a class="btn btn--ghost" href="/entrar">Cancelar</a>
+      </div>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

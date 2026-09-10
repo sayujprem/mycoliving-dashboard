@@ -173,51 +173,47 @@ def consumir_token(token: str, tipo: str) -> int | None:
 
 # --- control de intentos -----------------------------------------------------
 
-# Ventanas deslizantes. Frenan la fuerza bruta sin necesidad de Redis ni de un
-# servicio aparte: a esta escala, contar filas en Postgres sobra.
-MAX_INTENTOS_EMAIL = 5
-MAX_INTENTOS_IP = 20
-MAX_ALTAS_IP = 3
-VENTANA_INTENTOS = "15 minutes"
-VENTANA_ALTAS = "1 hour"
+# Ventanas deslizantes. Frenan la fuerza bruta y el abuso del envio de correos sin
+# necesidad de Redis ni de un servicio aparte: a esta escala, contar filas sobra.
+#
+# Cada regla es (tipo, por que se cuenta, tope, ventana, solo fallidos). Los fallos
+# de inicio de sesion se cuentan por correo (protege una cuenta concreta) y por IP
+# (frena a quien prueba muchas cuentas). Las altas y los envios de correo se cuentan
+# todos, fallen o no, porque lo que se limita es el volumen.
+_LIMITES = {
+    "acceso": (("email", 5, "15 minutes", True), ("ip", 20, "15 minutes", True)),
+    "alta": (("ip", 3, "1 hour", False),),
+    "recuperacion": (("ip", 5, "1 hour", False), ("email", 3, "1 hour", False)),
+    "reenvio": (("email", 3, "1 hour", False),),
+}
 
 
-def registrar_intento(email: str | None, ip: str | None, exitoso: bool) -> None:
+def registrar_intento(tipo: str, email: str | None, ip: str | None, exitoso: bool = False) -> None:
     with db_cursor(privilegiado=True) as cur:
         cur.execute(
-            "INSERT INTO intento_acceso (email, ip, exitoso) VALUES (%s, %s, %s)",
-            (normalizar_email(email) if email else None, ip, exitoso),
+            "INSERT INTO intento_acceso (tipo, email, ip, exitoso) VALUES (%s, %s, %s, %s)",
+            (tipo, normalizar_email(email) if email else None, ip, exitoso),
         )
 
 
-def acceso_bloqueado(email: str | None, ip: str | None) -> bool:
-    """True si este correo o esta IP acumularon demasiados fallos recientes."""
+def limite_superado(tipo: str, email: str | None, ip: str | None) -> bool:
+    """True si este correo o esta IP ya agotaron el cupo del flujo `tipo`."""
+    valores = {"email": normalizar_email(email) if email else None, "ip": ip}
     with db_cursor(privilegiado=True) as cur:
-        cur.execute(
-            "SELECT count(*) AS n FROM intento_acceso "
-            f"WHERE email = %s AND NOT exitoso AND ts > now() - INTERVAL '{VENTANA_INTENTOS}'",
-            (normalizar_email(email) if email else None,),
-        )
-        if cur.fetchone()["n"] >= MAX_INTENTOS_EMAIL:
-            return True
-        cur.execute(
-            "SELECT count(*) AS n FROM intento_acceso "
-            f"WHERE ip = %s AND NOT exitoso AND ts > now() - INTERVAL '{VENTANA_INTENTOS}'",
-            (ip,),
-        )
-        return cur.fetchone()["n"] >= MAX_INTENTOS_IP
-
-
-def altas_bloqueadas(ip: str | None) -> bool:
-    """True si esta IP ya creo demasiadas cuentas en la ultima hora."""
-    with db_cursor(privilegiado=True) as cur:
-        cur.execute(
-            "SELECT count(*) AS n FROM usuario u "
-            "JOIN intento_acceso i ON i.email = u.email AND i.exitoso "
-            f"WHERE i.ip = %s AND u.creado_en > now() - INTERVAL '{VENTANA_ALTAS}'",
-            (ip,),
-        )
-        return cur.fetchone()["n"] >= MAX_ALTAS_IP
+        for columna, tope, ventana, solo_fallidos in _LIMITES[tipo]:
+            if valores[columna] is None:
+                continue
+            filtro_fallo = "AND NOT exitoso" if solo_fallidos else ""
+            # columna, ventana y filtro salen de _LIMITES, nunca de la peticion.
+            cur.execute(
+                f"SELECT count(*) AS n FROM intento_acceso "
+                f"WHERE tipo = %s AND {columna} = %s {filtro_fallo} "
+                f"AND ts > now() - INTERVAL '{ventana}'",
+                (tipo, valores[columna]),
+            )
+            if cur.fetchone()["n"] >= tope:
+                return True
+    return False
 
 
 # --- administracion ----------------------------------------------------------

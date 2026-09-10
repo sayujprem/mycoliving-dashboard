@@ -32,6 +32,12 @@
 <div class="alert alert--{{ tone }}">{{ text }}</div>
 {%- endmacro %}
 
+{# Todo formulario POST lo lleva; sin él, web/auth.CSRFMiddleware rechaza el envío.
+   Las macros importadas no ven el contexto de la página, por eso el token va como argumento. #}
+{% macro csrf(token) -%}
+<input type="hidden" name="csrf_token" value="{{ token }}">
+{%- endmacro %}
+
 {# Fila de recordatorio: r = {categoria, descripcion, fecha, dias, estado, tono} #}
 {% macro recordatorio_row(r) -%}
 <div class="row" style="justify-content:space-between;padding:11px 12px;border-radius:11px;border-bottom:1px solid var(--line-soft);{{ 'background:var(--tint-rojo)' if r.tono == 'rojo' }}">

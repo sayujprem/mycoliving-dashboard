@@ -2,13 +2,12 @@
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
 
 from db.init_db import drop_all, init_db
-from db.repositorio import get_activo, get_reserva_movimientos
-from main import app
+from db.repositorio import get_reserva_movimientos
 from motor.politica import calcular_brecha
 from motor.reserva import meses_restantes, reserva_agotada, trayectoria
+from tests.apoyo import activo_actual, nuevo_cliente
 
 PCTS = (40.0, 40.0, 20.0)  # libre, reinversión, reserva
 
@@ -60,7 +59,7 @@ def test_modulos_motor_sin_vocabulario_de_dominio():
 def client():
     drop_all()
     init_db()
-    c = TestClient(app)
+    c = nuevo_cliente()
     c.post(
         "/config/activo",
         data={"nombre": "C", "tipo": "coliving", "unidades_totales": "5",
@@ -92,7 +91,7 @@ def _mes(client, mes, arrendadas):
 
 def test_mes_positivo_hace_crecer_la_reserva(client):
     _mes(client, 1, 5)  # ingreso 4.5M; resultado = 4.5M - 450k - 400k - 3M = 650k
-    movs = get_reserva_movimientos(get_activo()["id"])
+    movs = get_reserva_movimientos(activo_actual()["id"])
     assert len(movs) == 1
     assert movs[0]["monto"] == pytest.approx(130000.0)  # 650k * 20%
     assert movs[0]["saldo_resultante"] == pytest.approx(130000.0)
@@ -104,7 +103,7 @@ def test_mes_positivo_hace_crecer_la_reserva(client):
 def test_mes_negativo_consume_la_reserva_y_avisa(client):
     _mes(client, 1, 5)  # +130k
     _mes(client, 2, 2)  # ingreso 1.8M; resultado = 1.8M - 850k - 3M = -2.05M
-    movs = get_reserva_movimientos(get_activo()["id"])
+    movs = get_reserva_movimientos(activo_actual()["id"])
     assert movs[-1]["monto"] == pytest.approx(-2050000.0)
     assert movs[-1]["saldo_resultante"] == pytest.approx(130000.0 - 2050000.0)
     r = client.get("/historico")
@@ -119,5 +118,5 @@ def test_editar_politica_recalcula_la_reserva(client):
         data={"porcentaje_libre": "40", "porcentaje_reinversion": "10", "porcentaje_reserva": "50"},
         follow_redirects=False,
     )
-    movs = get_reserva_movimientos(get_activo()["id"])
+    movs = get_reserva_movimientos(activo_actual()["id"])
     assert movs[0]["monto"] == pytest.approx(325000.0)  # 650k * 50%

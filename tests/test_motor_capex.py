@@ -3,12 +3,11 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
 
 from db.init_db import drop_all, init_db
 from dominio.capex import resumen_capex
-from main import app
 from motor.capex import recuperacion
+from tests.apoyo import nuevo_cliente
 
 
 def test_recuperacion_a_mitad_de_horizonte():
@@ -58,7 +57,7 @@ def test_resumen_capex_agrega_varias_partidas():
 def client():
     drop_all()
     init_db()
-    c = TestClient(app)
+    c = nuevo_cliente()
     c.post(
         "/config/activo",
         data={"nombre": "C", "tipo": "coliving", "unidades_totales": "5",

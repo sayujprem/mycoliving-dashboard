@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}{{ titulo_doc }} · MyColiving{% endblock %}
+{% block content %}
+<section style="max-width:720px">
+  <span class="eyebrow">Legal</span>
+  <h1 style="font-size:clamp(26px,4vw,38px);margin:14px 0 18px">{{ titulo_doc }}</h1>
+  <div class="card" style="padding:clamp(20px,3vw,28px);font-size:15px;line-height:1.65">
+    {{ cuerpo }}
+  </div>
+</section>
+{% endblock %}

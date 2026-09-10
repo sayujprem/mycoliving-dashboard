@@ -51,16 +51,20 @@ CREATE INDEX IF NOT EXISTS ix_token_email_usuario ON token_email (usuario_id, ti
 
 -- Ventana deslizante para frenar fuerza bruta sin depender de Redis ni de un servicio
 -- externo. Se purga sola: ver limpiar_intentos_viejos() mas abajo.
+-- `tipo` separa los tres flujos que se limitan: iniciar sesion, crear cuenta y pedir
+-- un enlace de recuperacion. Cada uno tiene su propio tope.
 CREATE TABLE IF NOT EXISTS intento_acceso (
     id      BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    tipo    TEXT        NOT NULL DEFAULT 'acceso'
+                        CHECK (tipo IN ('acceso', 'alta', 'recuperacion', 'reenvio')),
     email   TEXT,
     ip      TEXT,
     exitoso BOOLEAN     NOT NULL DEFAULT false,
     ts      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS ix_intento_email ON intento_acceso (email, ts DESC);
-CREATE INDEX IF NOT EXISTS ix_intento_ip    ON intento_acceso (ip, ts DESC);
+CREATE INDEX IF NOT EXISTS ix_intento_email ON intento_acceso (tipo, email, ts DESC);
+CREATE INDEX IF NOT EXISTS ix_intento_ip    ON intento_acceso (tipo, ip, ts DESC);
 
 -- Auditoria de gasto del API de Anthropic, independiente de la consola del proveedor.
 CREATE TABLE IF NOT EXISTS uso_asesoria (
@@ -368,6 +372,14 @@ BEGIN
 END
 $$;
 
+-- Las tablas de cuentas tambien llevan RLS, pero *sin ninguna politica*: eso niega
+-- todas las filas a cualquier rol sin BYPASSRLS, incluido mycoliving_app. Solo el rol de
+-- conexion (modo privilegiado de db_cursor, que usa unicamente web/auth.py y db/usuarios.py)
+-- puede leerlas. Ver la seccion siguiente para por que importa.
+ALTER TABLE usuario        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE token_email    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE intento_acceso ENABLE ROW LEVEL SECURITY;
+
 -- reporte_unidad no tiene activo_id: llega a su dueno por el reporte padre.
 DROP POLICY IF EXISTS p_reporte_unidad ON reporte_unidad;
 CREATE POLICY p_reporte_unidad ON reporte_unidad
@@ -381,3 +393,32 @@ CREATE POLICY p_reporte_unidad ON reporte_unidad
         JOIN activo a ON a.id = rm.activo_id
         WHERE a.usuario_id = app_usuario_id()
     ));
+
+
+-- ---------------------------------------------------------------------------
+-- Cierre de la Data API de Supabase
+-- ---------------------------------------------------------------------------
+
+-- Supabase publica el esquema public por HTTP (PostgREST, en /rest/v1/) para los roles
+-- anon y authenticated, y la clave de anon es publica por diseno. Ademas, en ese esquema
+-- concede por defecto todos los permisos sobre las tablas nuevas a esos dos roles. Sin
+-- este bloque, cualquiera con la URL del proyecto podria leer la tabla usuario.
+--
+-- La aplicacion no usa la Data API: habla con Postgres directamente. Asi que se les quita
+-- todo. En Postgres local y en CI esos roles no existen y el bloque no hace nada.
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon')
+       AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+        REVOKE ALL ON ALL TABLES    IN SCHEMA public FROM anon, authenticated;
+        REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
+        REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM anon, authenticated;
+    END IF;
+END
+$$;
+
+-- Postgres concede EXECUTE a PUBLIC en toda funcion nueva, y PostgREST expone las del
+-- esquema public como /rest/v1/rpc/<nombre>. Se retira, y se devuelve solo donde hace
+-- falta: las politicas de aislamiento evaluan app_usuario_id() con el rol de la app.
+REVOKE EXECUTE ON FUNCTION app_usuario_id(), limpiar_intentos_viejos(), fn_valida_ocupacion() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION app_usuario_id() TO mycoliving_app;

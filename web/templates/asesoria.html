@@ -23,9 +23,12 @@
   </div>
 
   <div class="row" style="margin-top:18px">
-    <form method="post" action="/asesoria/{{ asesoria.anio }}/{{ asesoria.mes }}" style="display:inline">
+    {% if usuario_sesion.asesoria_habilitada %}
+    <form method="post" action="/asesoria/{{ asesoria.anio }}/{{ asesoria.mes }}" style="display:inline">{{ ui.csrf(csrf_token) }}
+      <input type="hidden" name="regenerar" value="1">
       <button class="btn btn--ghost" type="submit">Regenerar</button>
     </form>
+    {% endif %}
     <a class="btn btn--ghost" href="/historico">Volver al histórico</a>
   </div>
   <p class="muted" style="font-size:12px;margin-top:10px">Generada el {{ asesoria.fecha_generacion }}.</p>

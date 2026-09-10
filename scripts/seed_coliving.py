@@ -3,18 +3,18 @@
 Este archivo es datos de arranque, no lógica: por eso el número de unidades, la comisión y
 el rango de arriendo viven aquí y no dentro de `motor/`, `dominio/`, `db/` ni `web/`.
 
-Idempotente: si ya existe un activo, no toca nada.
-Correr:  python -m scripts.seed_coliving
+Idempotente: si la cuenta ya tiene un activo, no toca nada.
+Correr:  python -m scripts.seed_coliving --email correo@dominio
 """
 from datetime import date
 
 from db.init_db import init_db
 from db.repositorio import (
     crear_o_actualizar_activo,
-    get_activo,
     guardar_politica,
     set_configuracion,
 )
+from scripts._cuenta import abrir_cuenta, email_de_argumentos
 
 ACTIVO = {
     "nombre": "Coliving Granada",
@@ -51,17 +51,22 @@ POLITICA = {
     "porcentaje_reinversion": 40,
     "porcentaje_reserva": 20,
     "tarifa_marginal_actual": 0,
-    "calcular_impuesto": 0,
+    "calcular_impuesto": False,
 }
 
 
-def seed() -> None:
+def seed(email: str | None) -> bool:
+    """Devuelve False si no se pudo resolver la cuenta."""
     init_db()
-    if get_activo():
-        print("Ya hay un activo configurado; no se toca nada.")
-        return
+    cuenta = abrir_cuenta(email)
+    if not cuenta:
+        return False
+    usuario, activo = cuenta
+    if activo:
+        print("La cuenta ya tiene un activo configurado; no se toca nada.")
+        return True
 
-    activo_id = crear_o_actualizar_activo(ACTIVO)
+    activo_id = crear_o_actualizar_activo(usuario["id"], ACTIVO)
     for clave, valor in UMBRALES.items():
         set_configuracion(activo_id, clave, valor)
     guardar_politica(activo_id, {**POLITICA, "fecha_definicion": date.today().isoformat()})
@@ -70,7 +75,8 @@ def seed() -> None:
     print("Esta operación NO usa contrato maestro: el canon de la propietaria va dentro de")
     print("los gastos fijos de cada informe mensual. Por eso gasto_maximo_pct_verde queda en 80.")
     print("Falta el capex y los recordatorios desde /config.")
+    return True
 
 
 if __name__ == "__main__":
-    seed()
+    raise SystemExit(0 if seed(email_de_argumentos()) else 1)

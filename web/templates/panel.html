@@ -8,7 +8,7 @@
     <strong>Datos de ejemplo.</strong>
     Lo que ves no es tu operación real: se cargó el {{ demo.fecha }} para probar la app.
   </div>
-  <form method="post" action="/demo/limpiar" style="margin:0">
+  <form method="post" action="/demo/limpiar" style="margin:0">{{ ui.csrf(csrf_token) }}
     <button class="btn btn--ghost" type="submit" style="padding:7px 14px;font-size:12px">Quitar los datos de ejemplo</button>
   </form>
 </div>
@@ -204,20 +204,27 @@
             {% if asesoria %}
               <div style="white-space:pre-line;font-size:14.5px;line-height:1.6;color:var(--panel-ink);margin-top:12px">{{ asesoria.texto_asesoria }}</div>
               <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--panel-line);font-size:13.5px;line-height:1.55;color:var(--panel-ink-dim);white-space:pre-line">{{ asesoria.texto_fiscal }}</div>
+              {% if usuario_sesion.asesoria_habilitada %}
               <div class="row" style="margin-top:14px">
-                <form method="post" action="/asesoria/{{ anio }}/{{ mes }}" style="display:inline">
+                <form method="post" action="/asesoria/{{ anio }}/{{ mes }}" style="display:inline">{{ ui.csrf(csrf_token) }}
                   <input type="hidden" name="origen" value="panel">
+                  <input type="hidden" name="regenerar" value="1">
                   <button class="btn btn--ghost" type="submit" style="padding:7px 14px;font-size:12px">Regenerar</button>
                 </form>
               </div>
-            {% else %}
+              {% endif %}
+            {% elif usuario_sesion.asesoria_habilitada %}
               <p style="color:var(--panel-ink-dim);font-size:14px;margin-top:12px">
                 Todavía no se ha generado la asesoría de este mes.
               </p>
-              <form method="post" action="/asesoria/{{ anio }}/{{ mes }}" style="margin-top:12px">
+              <form method="post" action="/asesoria/{{ anio }}/{{ mes }}" style="margin-top:12px">{{ ui.csrf(csrf_token) }}
                 <input type="hidden" name="origen" value="panel">
                 <button class="btn" type="submit">Generar asesoría</button>
               </form>
+            {% else %}
+              <p style="color:var(--panel-ink-dim);font-size:14px;margin-top:12px">
+                La asesoría con IA no está habilitada en tu cuenta.
+              </p>
             {% endif %}
           </div>
         </div>

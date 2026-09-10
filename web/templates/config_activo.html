@@ -9,7 +9,7 @@
 
   {% for e in errores %}{{ ui.alert(e, "error") }}{% endfor %}
 
-  <form method="post" action="/config/activo" class="card" style="padding:clamp(20px,3vw,28px);margin-top:14px">
+  <form method="post" action="/config/activo" class="card" style="padding:clamp(20px,3vw,28px);margin-top:14px">{{ ui.csrf(csrf_token) }}
     <div class="field">
       <label for="nombre">Nombre</label>
       <input type="text" id="nombre" name="nombre" value="{{ activo.nombre if activo else '' }}" required>

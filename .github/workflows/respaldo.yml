@@ -1,0 +1,65 @@
+# Respaldo mensual cifrado de la base a Google Drive.
+#
+# Secretos del repositorio (Settings -> Secrets and variables -> Actions):
+#   DATABASE_URL_RESPALDO  cadena del *session pooler* de Supabase, puerto 5432.
+#   RESPALDO_CLAVE         frase de cifrado. Guardala tambien fuera de GitHub: sin
+#                          ella, ninguna copia se puede leer.
+#   RCLONE_CONF            la seccion [respaldos] de ~/.config/rclone/rclone.conf: un
+#                          remoto de Google Drive con permiso drive.file. El destino por
+#                          defecto es respaldos:mycoliving/ (ver scripts/respaldo.py).
+#
+# Aviso: GitHub desactiva los flujos programados de un repositorio publico tras 60
+# dias sin commits. Manda un correo antes; se reactiva desde la pestana Actions.
+
+name: Respaldo mensual
+
+on:
+  schedule:
+    - cron: "0 13 5 * *"   # dia 5 de cada mes, 8:00 en Colombia
+  workflow_dispatch:        # para correrlo a mano desde la pestana Actions
+
+permissions:
+  contents: read
+
+jobs:
+  respaldo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # pg_dump tiene que ser de la misma version mayor que el servidor o mas nueva.
+      # Ubuntu trae la 16 y Supabase corre la 17, asi que se instala desde el
+      # repositorio oficial de PostgreSQL.
+      - name: Instalar pg_dump 17, gpg y rclone
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17 gnupg rclone
+
+      - name: Configurar rclone
+        env:
+          RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
+        run: |
+          mkdir -p ~/.config/rclone
+          printf '%s' "$RCLONE_CONF" > ~/.config/rclone/rclone.conf
+          chmod 600 ~/.config/rclone/rclone.conf
+
+      - name: Respaldar
+        env:
+          DATABASE_URL_RESPALDO: ${{ secrets.DATABASE_URL_RESPALDO }}
+          RESPALDO_CLAVE: ${{ secrets.RESPALDO_CLAVE }}
+          PG_DUMP_BIN: /usr/lib/postgresql/17/bin/pg_dump
+        run: python -m scripts.respaldo
+
+      - name: Borrar la configuracion de rclone
+        if: always()
+        run: rm -f ~/.config/rclone/rclone.conf

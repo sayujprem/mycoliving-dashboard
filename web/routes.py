@@ -411,7 +411,7 @@ def config_politica_guardar(
             "porcentaje_reinversion": porcentaje_reinversion,
             "porcentaje_reserva": porcentaje_reserva,
             "tarifa_marginal_actual": tarifa_marginal_actual,
-            "calcular_impuesto": 1 if calcula else 0,
+            "calcular_impuesto": calcula,
         }
         return templates.TemplateResponse(
             request,
@@ -427,7 +427,7 @@ def config_politica_guardar(
             "porcentaje_reinversion": reinv,
             "porcentaje_reserva": reserva,
             "tarifa_marginal_actual": tarifa,
-            "calcular_impuesto": 1 if calcula else 0,
+            "calcular_impuesto": calcula,
             "fecha_definicion": _hoy(),
         },
     )
@@ -820,7 +820,11 @@ def asesoria_vista(request: Request, anio: int, mes: int):
 
 @router.post("/asesoria/{anio}/{mes}", response_class=HTMLResponse)
 def asesoria_generar(
-    request: Request, anio: int, mes: int, origen: str = Form("historico")
+    request: Request,
+    anio: int,
+    mes: int,
+    origen: str = Form("historico"),
+    regenerar: str = Form(""),
 ):
     """`origen` dice desde qué pantalla se pulsó el botón, para devolver el error ahí mismo
     en vez de sacar al usuario de donde estaba. El default preserva el comportamiento
@@ -844,7 +848,9 @@ def asesoria_generar(
 
     # Dos clics seguidos en "Generar" disparaban dos llamadas al modelo en paralelo y
     # dos escrituras del mismo mes. Si el informe ya existe, no se vuelve a pagar.
-    if get_asesoria(activo["id"], anio, mes):
+    # "Regenerar" es la excepcion deliberada: el usuario pide explicitamente otro
+    # informe, por ejemplo tras corregir los datos del mes.
+    if regenerar != "1" and get_asesoria(activo["id"], anio, mes):
         return RedirectResponse(f"/asesoria/{anio}/{mes}", status_code=303)
 
     resultado = generar_y_guardar(activo["id"], anio, mes)
