@@ -20,8 +20,9 @@ class ResumenCapex:
     detalle: list[tuple[dict, RecuperacionCapex]]
 
 
-def _meses_transcurridos(desde_iso: str, hasta: date) -> int:
-    d = date.fromisoformat(desde_iso)
+def _meses_transcurridos(desde, hasta: date) -> int:
+    # `desde` llega como date desde la base y como texto ISO desde los tests y el seed.
+    d = desde if isinstance(desde, date) else date.fromisoformat(str(desde)[:10])
     return (hasta.year - d.year) * 12 + (hasta.month - d.month)
 
 

@@ -48,6 +48,8 @@ from dominio.reserva import recalcular_reserva
 from motor.politica import calcular_brecha
 from motor.recordatorios import PROXIMO, VENCIDO
 from motor.reserva import meses_restantes, reserva_agotada
+from db.usuarios import registrar_uso_asesoria
+from web.auth import activo_opcional, requiere_activo, requiere_sesion
 from web.templates_env import templates
 
 router = APIRouter()
@@ -88,7 +90,7 @@ def _fmt_num(valor) -> str:
 
 @router.get("/", response_class=HTMLResponse)
 def panel(request: Request) -> HTMLResponse:
-    activo = get_activo()
+    usuario, activo = activo_opcional(request)
     if not activo:
         return templates.TemplateResponse(
             request, "panel.html", {"active": "panel", "activo": None}
@@ -126,7 +128,7 @@ def panel(request: Request) -> HTMLResponse:
 
 @router.post("/demo/limpiar", response_class=HTMLResponse)
 def demo_limpiar(request: Request):
-    activo = get_activo()
+    usuario, activo = activo_opcional(request)
     if activo:
         limpiar_demo(activo["id"])
     return RedirectResponse("/", status_code=303)
@@ -134,9 +136,7 @@ def demo_limpiar(request: Request):
 
 @router.get("/config", response_class=HTMLResponse)
 def config(request: Request):
-    activo = get_activo()
-    if not activo:
-        return RedirectResponse("/config/activo", status_code=303)
+    usuario, activo = requiere_activo(request)
     conf = get_configuracion(activo["id"])
     clasificados = clasificar_recordatorios(get_recordatorios(activo["id"]), conf)
     return templates.TemplateResponse(
@@ -159,7 +159,7 @@ def config(request: Request):
 
 @router.get("/config/activo", response_class=HTMLResponse)
 def config_activo_form(request: Request) -> HTMLResponse:
-    activo = get_activo()
+    usuario, activo = activo_opcional(request)
     return templates.TemplateResponse(
         request,
         "config_activo.html",
@@ -185,6 +185,7 @@ def config_activo_guardar(
     ubicacion: str = Form(""),
     notas: str = Form(""),
 ):
+    usuario = requiere_sesion(request)
     errores: list[str] = []
     if not nombre.strip():
         errores.append("El nombre es obligatorio.")
@@ -221,7 +222,7 @@ def config_activo_guardar(
             {
                 "active": "config",
                 "activo": crudo,
-                "modo": "editar" if get_activo() else "crear",
+                "modo": "editar" if get_activo(usuario["id"]) else "crear",
                 "monedas": MONEDAS,
                 "tipos": TIPOS_ACTIVO,
                 "errores": errores,
@@ -230,6 +231,7 @@ def config_activo_guardar(
         )
 
     crear_o_actualizar_activo(
+        usuario["id"],
         {
             "nombre": nombre.strip(),
             "tipo": tipo.strip() or "otro",
@@ -245,9 +247,7 @@ def config_activo_guardar(
 
 @router.get("/config/umbrales", response_class=HTMLResponse)
 def config_umbrales_form(request: Request):
-    activo = get_activo()
-    if not activo:
-        return RedirectResponse("/config/activo", status_code=303)
+    usuario, activo = requiere_activo(request)
     return templates.TemplateResponse(
         request,
         "config_umbrales.html",
@@ -263,9 +263,7 @@ def config_umbrales_form(request: Request):
 
 @router.post("/config/umbrales", response_class=HTMLResponse)
 async def config_umbrales_guardar(request: Request):
-    activo = get_activo()
-    if not activo:
-        return RedirectResponse("/config/activo", status_code=303)
+    usuario, activo = requiere_activo(request)
 
     form = await request.form()
     errores: list[str] = []
@@ -310,9 +308,7 @@ async def config_umbrales_guardar(request: Request):
 
 @router.get("/config/contrato", response_class=HTMLResponse)
 def config_contrato_form(request: Request):
-    activo = get_activo()
-    if not activo:
-        return RedirectResponse("/config/activo", status_code=303)
+    usuario, activo = requiere_activo(request)
     return templates.TemplateResponse(
         request,
         "config_contrato.html",
@@ -330,9 +326,7 @@ def config_contrato_guardar(
     regla_reajuste: str = Form(""),
     ventana_preaviso_dias: str = Form("0"),
 ):
-    activo = get_activo()
-    if not activo:
-        return RedirectResponse("/config/activo", status_code=303)
+    usuario, activo = requiere_activo(request)
 
     errores: list[str] = []
     canon = _num(canon_mensual, "Canon mensual", errores, minimo=0)
@@ -377,9 +371,7 @@ def config_contrato_guardar(
 
 @router.get("/config/politica", response_class=HTMLResponse)
 def config_politica_form(request: Request):
-    activo = get_activo()
-    if not activo:
-        return RedirectResponse("/config/activo", status_code=303)
+    usuario, activo = requiere_activo(request)
     return templates.TemplateResponse(
         request,
         "config_politica.html",
@@ -396,9 +388,7 @@ def config_politica_guardar(
     tarifa_marginal_actual: str = Form("0"),
     calcular_impuesto: str = Form(""),
 ):
-    activo = get_activo()
-    if not activo:
-        return RedirectResponse("/config/activo", status_code=303)
+    usuario, activo = requiere_activo(request)
 
     errores: list[str] = []
     libre = _num(porcentaje_libre, "Libre disposición", errores, minimo=0, maximo=100)
@@ -447,9 +437,7 @@ def config_politica_guardar(
 
 @router.get("/config/capex", response_class=HTMLResponse)
 def config_capex_vista(request: Request):
-    activo = get_activo()
-    if not activo:
-        return RedirectResponse("/config/activo", status_code=303)
+    usuario, activo = requiere_activo(request)
     contrato = get_contrato_maestro(activo["id"])
     conf = get_configuracion(activo["id"])
     horizonte_sugerido = contrato["vigencia_meses"] if contrato else horizonte_meses_config(conf)
@@ -476,9 +464,7 @@ def config_capex_agregar(
     fecha: str = Form(""),
     horizonte_meses: str = Form(""),
 ):
-    activo = get_activo()
-    if not activo:
-        return RedirectResponse("/config/activo", status_code=303)
+    usuario, activo = requiere_activo(request)
 
     errores: list[str] = []
     if not concepto.strip():
@@ -520,7 +506,7 @@ def config_capex_agregar(
 
 @router.post("/config/capex/{capex_id}/eliminar", response_class=HTMLResponse)
 def config_capex_eliminar(request: Request, capex_id: int):
-    activo = get_activo()
+    usuario, activo = activo_opcional(request)
     if activo:
         eliminar_capex(activo["id"], capex_id)
     return RedirectResponse("/config/capex", status_code=303)
@@ -528,9 +514,7 @@ def config_capex_eliminar(request: Request, capex_id: int):
 
 @router.get("/config/recordatorios", response_class=HTMLResponse)
 def config_recordatorios_vista(request: Request):
-    activo = get_activo()
-    if not activo:
-        return RedirectResponse("/config/activo", status_code=303)
+    usuario, activo = requiere_activo(request)
     conf = get_configuracion(activo["id"])
     return templates.TemplateResponse(
         request,
@@ -553,9 +537,7 @@ def config_recordatorios_agregar(
     frecuencia_meses: str = Form(""),
     fecha_vencimiento_fija: str = Form(""),
 ):
-    activo = get_activo()
-    if not activo:
-        return RedirectResponse("/config/activo", status_code=303)
+    usuario, activo = requiere_activo(request)
 
     errores: list[str] = []
     if not categoria.strip():
@@ -605,7 +587,7 @@ def config_recordatorios_agregar(
 
 @router.post("/config/recordatorios/{recordatorio_id}/eliminar", response_class=HTMLResponse)
 def config_recordatorios_eliminar(request: Request, recordatorio_id: int):
-    activo = get_activo()
+    usuario, activo = activo_opcional(request)
     if activo:
         eliminar_recordatorio(activo["id"], recordatorio_id)
     return RedirectResponse("/config/recordatorios", status_code=303)
@@ -630,9 +612,7 @@ def _filas_unidades(activo, previas: dict) -> list[dict]:
 
 @router.get("/registro", response_class=HTMLResponse)
 def registro_form(request: Request, anio: int | None = None, mes: int | None = None):
-    activo = get_activo()
-    if not activo:
-        return RedirectResponse("/config/activo", status_code=303)
+    usuario, activo = requiere_activo(request)
     hoy = date.today()
     anio = anio or hoy.year
     mes = mes or hoy.month
@@ -666,9 +646,7 @@ def registro_form(request: Request, anio: int | None = None, mes: int | None = N
 
 @router.post("/registro", response_class=HTMLResponse)
 async def registro_guardar(request: Request):
-    activo = get_activo()
-    if not activo:
-        return RedirectResponse("/config/activo", status_code=303)
+    usuario, activo = requiere_activo(request)
 
     form = await request.form()
     errores: list[str] = []
@@ -748,9 +726,7 @@ async def registro_guardar(request: Request):
 
 @router.get("/historico", response_class=HTMLResponse)
 def historico(request: Request):
-    activo = get_activo()
-    if not activo:
-        return RedirectResponse("/config/activo", status_code=303)
+    usuario, activo = requiere_activo(request)
     reportes = get_reportes(activo["id"])
     contrato = get_contrato_maestro(activo["id"])
     politica = get_politica(activo["id"])
@@ -820,7 +796,7 @@ def historico_eliminar_mes(request: Request, anio: int, mes: int):
     """Quitar un mes mal cargado. Arrastra sus unidades (por cascade), su asesoría (que
     cuelga del activo, no del reporte) y obliga a rehacer el fondo de reserva, cuyo saldo
     es acumulativo."""
-    activo = get_activo()
+    usuario, activo = activo_opcional(request)
     if activo:
         eliminar_reporte(activo["id"], anio, mes)
         eliminar_asesoria(activo["id"], anio, mes)
@@ -830,9 +806,7 @@ def historico_eliminar_mes(request: Request, anio: int, mes: int):
 
 @router.get("/asesoria/{anio}/{mes}", response_class=HTMLResponse)
 def asesoria_vista(request: Request, anio: int, mes: int):
-    activo = get_activo()
-    if not activo:
-        return RedirectResponse("/config/activo", status_code=303)
+    usuario, activo = requiere_activo(request)
     asesoria = get_asesoria(activo["id"], anio, mes)
     if not asesoria:
         return RedirectResponse("/historico", status_code=303)
@@ -851,18 +825,31 @@ def asesoria_generar(
     """`origen` dice desde qué pantalla se pulsó el botón, para devolver el error ahí mismo
     en vez de sacar al usuario de donde estaba. El default preserva el comportamiento
     anterior para cualquier POST que no mande el campo."""
-    activo = get_activo()
-    if not activo:
-        return RedirectResponse("/config/activo", status_code=303)
-    resultado = generar_y_guardar(activo["id"], anio, mes)
-    if not resultado.ok:
+    usuario, activo = requiere_activo(request)
+
+    def volver(error: str) -> RedirectResponse:
         from urllib.parse import quote
 
-        error = quote(resultado.error)
         destino = (
-            f"/?anio={anio}&mes={mes}&error_asesoria={error}"
+            f"/?anio={anio}&mes={mes}&error_asesoria={quote(error)}"
             if origen == "panel"
-            else f"/historico?error_asesoria={error}"
+            else f"/historico?error_asesoria={quote(error)}"
         )
         return RedirectResponse(destino, status_code=303)
+
+    # Cada informe gasta credito real del API. La asesoría nace apagada en toda cuenta
+    # nueva y se habilita una por una desde /admin.
+    if not usuario["asesoria_habilitada"]:
+        return volver("La asesoría con IA no está habilitada en tu cuenta todavía.")
+
+    # Dos clics seguidos en "Generar" disparaban dos llamadas al modelo en paralelo y
+    # dos escrituras del mismo mes. Si el informe ya existe, no se vuelve a pagar.
+    if get_asesoria(activo["id"], anio, mes):
+        return RedirectResponse(f"/asesoria/{anio}/{mes}", status_code=303)
+
+    resultado = generar_y_guardar(activo["id"], anio, mes)
+    if not resultado.ok:
+        return volver(resultado.error)
+
+    registrar_uso_asesoria(usuario["id"], anio, mes)
     return RedirectResponse(f"/asesoria/{anio}/{mes}", status_code=303)
