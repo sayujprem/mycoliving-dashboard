@@ -43,7 +43,7 @@
             <div class="muted" style="font-size:11px">{{ rec.meses_transcurridos }} de {{ partida.horizonte_meses }} meses</div>
           </td>
           <td style="text-align:right">
-            <form method="post" action="/config/capex/{{ partida.id }}/eliminar" style="display:inline">
+            <form method="post" action="/config/capex/{{ partida.id }}/eliminar" style="display:inline">{{ ui.csrf(csrf_token) }}
               <button class="btn btn--ghost" type="submit" style="padding:6px 12px;font-size:12px">Quitar</button>
             </form>
           </td>
@@ -56,7 +56,7 @@
   {{ ui.alert("Todavía no hay inversión registrada.", "info") }}
   {% endif %}
 
-  <form method="post" action="/config/capex" class="card" style="padding:clamp(20px,3vw,28px);margin-top:14px">
+  <form method="post" action="/config/capex" class="card" style="padding:clamp(20px,3vw,28px);margin-top:14px">{{ ui.csrf(csrf_token) }}
     <div class="field">
       <label for="concepto">Concepto</label>
       <input type="text" id="concepto" name="concepto" placeholder="Ej: amoblado de sala-comedor y cocina" required>

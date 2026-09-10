@@ -3,36 +3,41 @@
 Sirve para ver la plataforma entera funcionando antes de tener cifras reales: seis meses
 que recorren los tres colores del semáforo, capex y recordatorios en sus tres estados.
 
-Correr:
-    python -m scripts.demo cargar
-    python -m scripts.demo limpiar
-    python -m scripts.demo estado
+Correr (siempre sobre una cuenta concreta):
+    python -m scripts.demo cargar  --email correo@dominio
+    python -m scripts.demo limpiar --email correo@dominio
+    python -m scripts.demo estado  --email correo@dominio
 
 Convive con `seed_coliving.py`, no lo reemplaza: el seed deja el activo y los umbrales
 (datos de arranque real), esta demo deja el movimiento de ejemplo. `cargar` llama al seed
-primero, que es no-op si ya hay un activo.
+primero, que es no-op si la cuenta ya tiene un activo.
 """
 import sys
 
 from dominio.demo import (
-    activo_por_defecto,
     cargar_demo,
     estado_demo,
     limpiar_demo,
     umbrales_distintos,
 )
+from scripts._cuenta import abrir_cuenta, email_de_argumentos
 from scripts.seed_coliving import seed
 
 
 def _activo_id() -> int | None:
-    activo_id = activo_por_defecto()
-    if not activo_id:
-        print("No hay un activo configurado. Corre primero: python -m scripts.seed_coliving")
-    return activo_id
+    cuenta = abrir_cuenta(email_de_argumentos())
+    if not cuenta:
+        return None
+    _, activo = cuenta
+    if not activo:
+        print("La cuenta no tiene un activo. Corre primero: python -m scripts.seed_coliving --email ...")
+        return None
+    return activo["id"]
 
 
 def cargar() -> int:
-    seed()  # no-op si ya hay activo
+    if not seed(email_de_argumentos()):  # no-op si la cuenta ya tiene activo
+        return 1
     activo_id = _activo_id()
     if not activo_id:
         return 1
@@ -87,7 +92,7 @@ COMANDOS = {"cargar": cargar, "limpiar": limpiar, "estado": estado}
 def main() -> int:
     comando = sys.argv[1] if len(sys.argv) > 1 else ""
     if comando not in COMANDOS:
-        print(f"Uso: python -m scripts.demo [{' | '.join(COMANDOS)}]")
+        print(f"Uso: python -m scripts.demo [{' | '.join(COMANDOS)}] --email correo@dominio")
         return 2
     return COMANDOS[comando]()
 

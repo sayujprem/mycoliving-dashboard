@@ -4,7 +4,7 @@ y produce los dos semáforos con su explicación.
 from __future__ import annotations
 
 from db.repositorio import (
-    get_activo,
+    get_activo_por_id,
     get_configuracion,
     get_contrato_maestro,
     get_reportes,
@@ -34,7 +34,7 @@ def contar_meses_bajo_equilibrio(
 
 
 def diagnostico_mes(activo_id: int, anio: int, mes: int) -> Diagnostico | None:
-    activo = get_activo()
+    activo = get_activo_por_id(activo_id)
     if not activo:
         return None
     conf = get_configuracion(activo_id)

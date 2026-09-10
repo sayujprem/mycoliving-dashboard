@@ -1,56 +1,109 @@
-# Política de privacidad — MyColiving Dashboard
+# Política de privacidad
 
-Última actualización: 8 de septiembre de 2026
+Última actualización: 10 de septiembre de 2026
 
-## Qué es esta aplicación
+## Quién es el responsable
 
-MyColiving Dashboard es una herramienta personal de uso local. Se instala y se ejecuta en el
-computador de quien la usa. No es un servicio en línea, no tiene servidores, no tiene cuentas
-de usuario y no hay ningún operador que reciba datos de terceros.
+MyColiving Dashboard es un proyecto personal y gratuito de Nelson García, persona natural
+domiciliada en Colombia. Él es el responsable del tratamiento de los datos que se registran
+en la plataforma, en los términos de la Ley 1581 de 2012.
 
-## Qué datos maneja y dónde viven
+Contacto para cualquier asunto de datos personales: privacidad.mycoliving@gmail.com.
 
-Todos los datos que registra el usuario —cifras de ocupación, ingresos, gastos y
-configuración del inmueble— se guardan en un archivo SQLite en su propio computador. No se
-envían a ninguna parte salvo en los dos casos descritos abajo, y ambos van a servicios que el
-propio usuario configura con sus propias credenciales.
+## Qué datos guardamos
 
-El desarrollador de esta aplicación no recibe, almacena ni tiene acceso a ningún dato de
-quien la usa.
+**De tu cuenta:** tu correo y tu contraseña. La contraseña no se guarda: se guarda una huella
+irreversible de ella (un hash con scrypt), así que nadie, ni siquiera el responsable, puede
+leerla.
 
-## Uso del acceso a Google Drive
+**De tu activo:** lo que tú registras. Nombre, tipo, número de unidades, comisión del
+administrador, moneda, ubicación y notas del activo; el contrato maestro; la política de
+distribución; cada mes registrado, con sus gastos, las unidades arrendadas y el ingreso de
+cada una, y las novedades que escribas; las inversiones de montaje; los recordatorios, y los
+informes de asesoría generados.
 
-La aplicación puede subir una copia de seguridad de su base de datos a la cuenta de Google
-Drive del propio usuario, usando [rclone](https://rclone.org). Ese acceso:
+La plataforma no te pide datos de tus inquilinos y no los necesita. Si escribes alguno en un
+campo de texto libre (por ejemplo, en las novedades del mes), queda guardado como lo
+escribiste.
 
-- Lo autoriza el usuario explícitamente, desde su computador.
-- Se usa únicamente para escribir, listar y rotar los archivos de respaldo de esta
-  aplicación, dentro de una carpeta que el usuario elige.
-- No lee, analiza ni transmite ningún otro contenido del Drive.
-- Guarda el token de acceso solo en el computador del usuario, en la configuración local de
-  rclone. Nunca se transmite a terceros.
+**Registros de seguridad:** cuando alguien intenta entrar, crear una cuenta o recuperar una
+contraseña, guardamos el correo usado, la dirección IP y la hora. Sirven para frenar ataques
+de fuerza bruta y se borran solos en un plazo de 7 días.
 
-El usuario puede revocar este acceso cuando quiera desde
-[la página de permisos de su cuenta de Google](https://myaccount.google.com/permissions), o
-borrando el remoto con `rclone config delete`.
+## Para qué los usamos
 
-## Uso de la API de Anthropic
+Para una sola cosa: que la plataforma funcione. Calcular tu resultado mensual, tus
+semáforos, tu fondo de reserva y tus recordatorios, y mostrártelos a ti.
 
-Si el usuario configura una clave propia de la API de Anthropic, la aplicación puede enviar
-el resumen numérico de un mes (resultado, brecha, estado de la reserva, recuperación de la
-inversión) para redactar el informe de asesoría de ese mes. Esa función es opcional: el resto
-de la aplicación funciona sin ella. No se envían datos identificatorios de inquilinos ni de
-personas.
+No vendemos datos. No hacemos publicidad. No usamos analítica ni rastreo de ningún tipo.
+
+## Quién más los procesa
+
+La plataforma se apoya en servicios de terceros, que procesan datos por cuenta del
+responsable. Todos operan servidores en Estados Unidos:
+
+- **Vercel** aloja la aplicación.
+- **Supabase** aloja la base de datos.
+- **Google** envía, por Gmail y desde privacidad.mycoliving@gmail.com, los correos de
+  verificación y de recuperación de contraseña, así que recibe tu correo y el texto del
+  mensaje. También sirve las tipografías de la interfaz: tu navegador se las pide
+  directamente, así que Google ve tu dirección IP.
+- **Anthropic** redacta el informe de asesoría, pero solo en las cuentas que tienen esa
+  función habilitada y solo cuando la pides. Recibe cifras agregadas del mes (resultado,
+  brecha frente a tu política, saldo del fondo de reserva, porcentaje de inversión
+  recuperada, meses de contrato restantes) y las **notas de contexto** que escribiste en la
+  configuración del activo. No recibe tu correo, ni el nombre ni la ubicación del activo, ni
+  el ingreso por unidad.
+- **Google Drive** guarda las copias de respaldo, cifradas con AES-256 antes de salir de la
+  plataforma. Sin la clave de cifrado, que no está en Drive, el archivo es ilegible.
+
+Al crear la cuenta autorizas que tus datos se almacenen y procesen en esos servidores.
+
+## Cuánto tiempo los guardamos
+
+Mientras tengas la cuenta. Si la eliminas, se borran de inmediato de la base de datos, con
+todo lo que registraste.
+
+Pueden seguir existiendo en las copias de respaldo cifradas, que se hacen una vez al mes para
+recuperar la plataforma ante una falla. Se conservan 12 y la más antigua se elimina sola.
+Esas copias no se consultan salvo para restaurar el servicio.
+
+## Tus derechos
+
+Como titular de los datos puedes conocerlos, actualizarlos, rectificarlos, pedir que se
+supriman y revocar la autorización que diste.
+
+- **Actualizar o corregir:** directamente en la plataforma, en cualquier momento.
+- **Suprimir todo:** en *Tu cuenta → Eliminar la cuenta*. Es inmediato.
+- **Cualquier otra solicitud**, o una queja: escribe a privacidad.mycoliving@gmail.com.
+  Se responde en un máximo de 10 días hábiles para consultas y 15 para reclamos, como fija
+  la ley.
+
+Si no quedas conforme con la respuesta, puedes acudir a la Superintendencia de Industria y
+Comercio.
+
+## Seguridad
+
+Cada cuenta está aislada de las demás en dos capas: la aplicación solo consulta los datos de
+quien tiene la sesión abierta, y la propia base de datos rechaza cualquier consulta sobre
+datos de otra cuenta, aunque la aplicación la pidiera por error. Las conexiones van cifradas
+(HTTPS), la sesión viaja en una cookie firmada que JavaScript no puede leer, y los intentos
+repetidos de acceso se bloquean.
+
+Ningún sistema es invulnerable. Si detectamos un incidente que afecte tus datos, te lo
+comunicaremos por correo.
+
+## Cookies
+
+Una sola: `mcl_sesion`, que mantiene tu sesión abierta hasta por 14 días. Es técnica e
+imprescindible para que puedas entrar. No hay cookies de publicidad, de analítica ni de
+terceros.
 
 ## Menores de edad
 
-La aplicación no está dirigida a menores de edad ni recoge datos de ellos.
+La plataforma no está dirigida a menores de 18 años.
 
 ## Cambios
 
-Cualquier cambio a esta política quedará registrado en el historial público de este
-repositorio.
-
-## Contacto
-
-A través de las [incidencias del repositorio](https://github.com/sayujprem/mycoliving-dashboard/issues).
+Si esta política cambia en algo que te afecte, te avisaremos por correo antes de que el
+cambio empiece a regir. Cada versión queda en el historial público del repositorio.

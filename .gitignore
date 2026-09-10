@@ -8,3 +8,4 @@ logs/
 respaldos/
 .DS_Store
 .pytest_cache/
+.pg/

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Revisa tu correo · MyColiving{% endblock %}
+{% block content %}
+<section style="max-width:640px">
+  <span class="eyebrow">Cuenta · Alta</span>
+  <h1 style="font-size:clamp(26px,4vw,38px);margin:14px 0 18px">Revisa tu correo</h1>
+
+  <div class="card" style="padding:clamp(20px,3vw,28px)">
+    <p style="margin:0">Si <strong>{{ email }}</strong> es una dirección válida, te enviamos un enlace para activar la cuenta. Vence en 24 horas.</p>
+    <p class="muted" style="margin:12px 0 0">¿Ya tenías una cuenta con ese correo? Entonces no creamos otra: <a href="/entrar" style="font-weight:600">entra</a> o <a href="/recuperar" style="font-weight:600">recupera tu contraseña</a>.</p>
+  </div>
+</section>
+{% endblock %}

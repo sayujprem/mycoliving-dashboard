@@ -1,17 +1,16 @@
 """Tarea 5: registro mensual del informe e histórico."""
 import pytest
-from fastapi.testclient import TestClient
 
 from db.init_db import drop_all, init_db
-from db.repositorio import get_activo, get_reportes
-from main import app
+from db.repositorio import get_reportes
+from tests.apoyo import activo_actual, nuevo_cliente
 
 
 @pytest.fixture
 def client():
     drop_all()
     init_db()
-    c = TestClient(app)
+    c = nuevo_cliente()
     c.post(
         "/config/activo",
         data={
@@ -48,8 +47,8 @@ def _mes_valido(**over):
 
 
 def test_sin_activo_redirige(client):
-    drop_all()
-    init_db()
+    # "Sin activo" ya no es una base vacía sino una cuenta que aún no lo configuró.
+    client = nuevo_cliente("sin-activo@ejemplo.com")
     r = client.get("/registro", follow_redirects=False)
     assert r.status_code == 303
     assert r.headers["location"] == "/config/activo"
@@ -66,7 +65,7 @@ def test_registro_valido_persiste_y_deriva_ocupacion(client):
     r = client.post("/registro", data=_mes_valido(), follow_redirects=False)
     assert r.status_code == 303
     assert r.headers["location"] == "/historico"
-    reportes = get_reportes(get_activo()["id"])
+    reportes = get_reportes(activo_actual()["id"])
     assert len(reportes) == 1
     assert reportes[0]["ocupacion"] == 4
     assert reportes[0]["ingreso_subarriendo"] == 3550000.0
@@ -79,7 +78,7 @@ def test_re_registrar_mismo_mes_reemplaza(client):
         data=_mes_valido(unidad_4_arrendada="", unidad_4_ingreso=""),
         follow_redirects=False,
     )
-    reportes = get_reportes(get_activo()["id"])
+    reportes = get_reportes(activo_actual()["id"])
     assert len(reportes) == 1
     assert reportes[0]["ocupacion"] == 3
 
@@ -87,14 +86,14 @@ def test_re_registrar_mismo_mes_reemplaza(client):
 def test_rechaza_gastos_vacios(client):
     r = client.post("/registro", data=_mes_valido(gastos_fijos=""))
     assert r.status_code == 400
-    assert get_reportes(get_activo()["id"]) == []
+    assert get_reportes(activo_actual()["id"]) == []
 
 
 def test_rechaza_unidad_arrendada_sin_ingreso(client):
     r = client.post("/registro", data=_mes_valido(unidad_2_ingreso=""))
     assert r.status_code == 400
     assert "sin ingreso" in r.text
-    assert get_reportes(get_activo()["id"]) == []
+    assert get_reportes(activo_actual()["id"]) == []
 
 
 def test_historico_vacio_muestra_aviso(client):

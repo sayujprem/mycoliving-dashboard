@@ -53,11 +53,6 @@
           {{ ui.stat(c.etiqueta, conf.get(c.clave) or "sin definir") }}
         {% endfor %}
       </div>
-      {% if conf.get("respaldo_ultimo") %}
-      <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line-soft)">
-        {{ ui.stat("Último respaldo", conf.get("respaldo_ultimo")) }}
-      </div>
-      {% endif %}
     </div>
 
     <div class="card" style="padding:clamp(20px,3vw,32px)">

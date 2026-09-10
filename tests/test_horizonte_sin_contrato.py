@@ -1,12 +1,11 @@
 """La plataforma funciona completa sin contrato maestro, con horizonte ajustable."""
 import pytest
-from fastapi.testclient import TestClient
 
 from db.init_db import drop_all, init_db
-from db.repositorio import get_activo, get_asesoria, get_contrato_maestro
+from db.repositorio import get_asesoria, get_contrato_maestro
 from dominio.asesoria import armar_contexto, generar_y_guardar
 from dominio.panel import panel_mes
-from main import app
+from tests.apoyo import activo_actual, nuevo_cliente
 
 
 class _Bloque:
@@ -30,7 +29,7 @@ class _ClienteOK:
 def client():
     drop_all()
     init_db()
-    c = TestClient(app)
+    c = nuevo_cliente()
     c.post("/config/activo", data={"nombre": "Coliving Granada", "tipo": "coliving",
            "unidades_totales": "5", "comision_administrador_pct": "10", "moneda": "COP",
            "ubicacion": "Armenia"}, follow_redirects=False)
@@ -59,7 +58,7 @@ def _mes(client, mes, arrendadas):
 
 
 def test_nunca_se_configuro_contrato_maestro(client):
-    assert get_contrato_maestro(get_activo()["id"]) is None
+    assert get_contrato_maestro(activo_actual()["id"]) is None
 
 
 def test_capex_sugiere_el_horizonte_configurado_sin_contrato(client):
@@ -70,7 +69,7 @@ def test_capex_sugiere_el_horizonte_configurado_sin_contrato(client):
 def test_registro_y_panel_funcionan_sin_contrato(client):
     r = _mes(client, 7, 4)
     assert r.status_code == 303
-    activo = get_activo()
+    activo = activo_actual()
     datos = panel_mes(activo["id"], 2026, 7)
     # resultado = ingreso - comision - gastos, sin descontar canon aparte (va en gastos_fijos)
     ingreso = 4 * 900_000
@@ -118,7 +117,7 @@ def test_panel_no_muestra_canon_en_cero_sin_contrato(client):
 
 def test_asesoria_usa_el_horizonte_configurado_como_ventana(client):
     _mes(client, 7, 4)
-    ctx = armar_contexto(get_activo()["id"], 2026, 7)
+    ctx = armar_contexto(activo_actual()["id"], 2026, 7)
     assert ctx["contrato_vigencia_meses"] == 36
 
 
@@ -129,8 +128,8 @@ def test_flujo_completo_de_asesoria_sin_contrato_maestro(client):
         "recomendacion_reinversion": "No reinvertir; cubrir el faltante con la reserva acumulada.",
         "nota_fiscal": "El mes no generó renta gravable. Estimación basada únicamente en el ingreso de este activo.",
     }
-    resultado = generar_y_guardar(get_activo()["id"], 2026, 7, api_key="x", cliente=_ClienteOK(entrada))
+    resultado = generar_y_guardar(activo_actual()["id"], 2026, 7, api_key="x", cliente=_ClienteOK(entrada))
     assert resultado.ok is True
-    assert get_asesoria(get_activo()["id"], 2026, 7) is not None
+    assert get_asesoria(activo_actual()["id"], 2026, 7) is not None
     html = client.get("/").text
     assert "2 de 5 unidades" in html

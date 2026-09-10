@@ -1,12 +1,10 @@
 """Tarea 14: vista del mes (dashboard)."""
 import pytest
-from fastapi.testclient import TestClient
 
 from db.init_db import drop_all, init_db
-from db.repositorio import get_activo
 from dominio.asesoria import generar_y_guardar
 from dominio.panel import panel_mes
-from main import app
+from tests.apoyo import activo_actual, nuevo_cliente
 
 
 class _Bloque:
@@ -30,7 +28,7 @@ class _ClienteOK:
 def client():
     drop_all()
     init_db()
-    c = TestClient(app)
+    c = nuevo_cliente(asesoria=True)
     c.post("/config/activo", data={"nombre": "Coliving Granada", "tipo": "coliving",
            "unidades_totales": "5", "comision_administrador_pct": "10", "moneda": "COP",
            "ubicacion": "Armenia"}, follow_redirects=False)
@@ -57,8 +55,8 @@ def _mes(client, mes, arrendadas):
 
 
 def test_panel_sin_activo(client):
-    drop_all()
-    init_db()
+    # "Sin activo" ya no es una base vacía sino una cuenta que aún no lo configuró.
+    client = nuevo_cliente("sin-activo@ejemplo.com")
     r = client.get("/")
     assert r.status_code == 200
     assert "Todavía no hay un activo configurado" in r.text
@@ -71,7 +69,7 @@ def test_panel_sin_historico(client):
 
 def test_panel_mes_arma_las_piezas(client):
     _mes(client, 7, 5)
-    datos = panel_mes(get_activo()["id"], 2026, 7)
+    datos = panel_mes(activo_actual()["id"], 2026, 7)
     assert datos["diagnostico"] is not None
     assert datos["brecha"] is not None
     assert datos["consolidado"].resultado == pytest.approx(4_500_000 - 850_000 - 3_000_000)
@@ -95,7 +93,7 @@ def test_panel_muestra_asesoria_guardada(client):
         "recomendacion_reinversion": "Cubrir el faltante con la reserva; no reinvertir.",
         "nota_fiscal": "El mes no generó renta gravable. Estimación basada únicamente en el ingreso de este activo.",
     }
-    generar_y_guardar(get_activo()["id"], 2026, 7, api_key="x", cliente=_ClienteOK(entrada))
+    generar_y_guardar(activo_actual()["id"], 2026, 7, api_key="x", cliente=_ClienteOK(entrada))
     r = client.get("/")
     assert "2 de 5 unidades" in r.text
     assert "Generar asesoría" not in r.text

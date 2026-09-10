@@ -1,17 +1,16 @@
 """Tarea 3: configuración del activo y de los umbrales de dominio."""
 import pytest
-from fastapi.testclient import TestClient
 
 from db.init_db import drop_all, init_db
-from db.repositorio import get_activo, get_configuracion
-from main import app
+from db.repositorio import get_configuracion
+from tests.apoyo import activo_actual, nuevo_cliente
 
 
 @pytest.fixture
 def client():
     drop_all()
     init_db()
-    return TestClient(app)
+    return nuevo_cliente()
 
 
 def _alta_activo(client):
@@ -39,7 +38,7 @@ def test_sin_activo_config_redirige_al_alta(client):
 def test_crear_activo_persiste(client):
     r = _alta_activo(client)
     assert r.status_code == 303
-    activo = get_activo()
+    activo = activo_actual()
     assert activo["nombre"] == "Coliving Granada"
     assert activo["unidades_totales"] == 5
     assert activo["comision_administrador_pct"] == 10.0
@@ -64,7 +63,7 @@ def test_editar_activo_no_crea_uno_nuevo(client):
     n = conn.execute("SELECT COUNT(*) AS n FROM activo").fetchone()["n"]
     conn.close()
     assert n == 1
-    assert get_activo()["unidades_totales"] == 6
+    assert activo_actual()["unidades_totales"] == 6
 
 
 def test_activo_rechaza_unidades_invalidas(client):
@@ -80,12 +79,12 @@ def test_activo_rechaza_unidades_invalidas(client):
     )
     assert r.status_code == 400
     assert "mayor que cero" in r.text
-    assert get_activo() is None
+    assert activo_actual() is None
 
 
 def test_editar_umbrales_persiste(client):
     _alta_activo(client)
-    activo_id = get_activo()["id"]
+    activo_id = activo_actual()["id"]
     r = client.post(
         "/config/umbrales",
         data={
@@ -112,7 +111,7 @@ def test_umbrales_rechaza_valor_no_numerico(client):
 
 def test_umbrales_ignora_campos_vacios(client):
     _alta_activo(client)
-    activo_id = get_activo()["id"]
+    activo_id = activo_actual()["id"]
     client.post("/config/umbrales", data={"ocupacion_minima_verde": "4"}, follow_redirects=False)
     conf = get_configuracion(activo_id)
     assert conf == {"ocupacion_minima_verde": "4"}

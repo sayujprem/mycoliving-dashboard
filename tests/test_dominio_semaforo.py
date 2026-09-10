@@ -1,9 +1,7 @@
 """Tarea 10: diagnóstico del semáforo, determinístico."""
 import pytest
-from fastapi.testclient import TestClient
 
 from db.init_db import drop_all, init_db
-from db.repositorio import get_activo
 from dominio.diagnostico import diagnostico_mes
 from dominio.semaforo import (
     AMARILLO,
@@ -13,7 +11,7 @@ from dominio.semaforo import (
     semaforo_ocupacion,
     semaforo_resultado,
 )
-from main import app
+from tests.apoyo import activo_actual, nuevo_cliente
 
 
 def test_ocupacion_equilibrio():
@@ -52,7 +50,7 @@ def test_semaforo_ocupacion_tres_colores_y_vacancia():
 def client():
     drop_all()
     init_db()
-    c = TestClient(app)
+    c = nuevo_cliente()
     c.post(
         "/config/activo",
         data={"nombre": "C", "tipo": "coliving", "unidades_totales": "5",
@@ -86,7 +84,7 @@ def _mes(client, mes, arrendadas):
 
 def test_mes_lleno_da_verde_verde(client):
     _mes(client, 1, 5)
-    d = diagnostico_mes(get_activo()["id"], 2026, 1)
+    d = diagnostico_mes(activo_actual()["id"], 2026, 1)
     assert d.ocupacion_equilibrio == 5
     assert d.resultado.estado == VERDE
     assert d.ocupacion.estado == VERDE
@@ -96,11 +94,11 @@ def test_dos_meses_bajo_equilibrio_disparan_vacancia(client):
     _mes(client, 1, 5)
     _mes(client, 2, 2)
     _mes(client, 3, 2)
-    d3 = diagnostico_mes(get_activo()["id"], 2026, 3)
+    d3 = diagnostico_mes(activo_actual()["id"], 2026, 3)
     assert d3.ocupacion.estado == ROJO
     assert "2 meses" in d3.ocupacion.explicacion
     assert d3.resultado.estado == ROJO
-    d1 = diagnostico_mes(get_activo()["id"], 2026, 1)
+    d1 = diagnostico_mes(activo_actual()["id"], 2026, 1)
     assert d1.ocupacion.estado == VERDE
 
 

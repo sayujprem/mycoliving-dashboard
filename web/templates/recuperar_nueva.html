@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Contraseña nueva · MyColiving{% endblock %}
+{% block content %}
+<section style="max-width:640px">
+  <span class="eyebrow">Cuenta · Recuperación</span>
+  <h1 style="font-size:clamp(26px,4vw,38px);margin:14px 0 18px">Elegir una contraseña nueva</h1>
+
+  {% for e in errores %}{{ ui.alert(e, "error") }}{% endfor %}
+
+  {% if invalido %}
+    <p style="margin-top:14px"><a class="btn" href="/recuperar">Pedir otro enlace</a></p>
+  {% else %}
+    <form method="post" action="/recuperar/{{ token }}" class="card" style="padding:clamp(20px,3vw,28px);margin-top:14px">{{ ui.csrf(csrf_token) }}
+      <div class="form-row">
+        <div class="field">
+          <label for="password">Contraseña nueva</label>
+          <div class="hint">Mínimo 10 caracteres.</div>
+          <input type="password" id="password" name="password" autocomplete="new-password" minlength="10" maxlength="128" required autofocus>
+        </div>
+        <div class="field">
+          <label for="confirmacion">Repítela</label>
+          <div class="hint">&nbsp;</div>
+          <input type="password" id="confirmacion" name="confirmacion" autocomplete="new-password" minlength="10" maxlength="128" required>
+        </div>
+      </div>
+      <p class="muted" style="margin:0 0 16px;font-size:14px">Al guardarla se cierran todas las sesiones abiertas de tu cuenta.</p>
+      <button class="btn" type="submit">Guardar contraseña</button>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

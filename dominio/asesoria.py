@@ -11,7 +11,7 @@ from datetime import date
 
 from config import ANTHROPIC_API_KEY, ANTHROPIC_WORKSPACE_ID
 from db.repositorio import (
-    get_activo,
+    get_activo_por_id,
     get_capex,
     get_configuracion,
     get_contrato_maestro,
@@ -45,7 +45,7 @@ def _meses_hasta(fecha_iso) -> int:
 
 
 def armar_contexto(activo_id: int, anio: int, mes: int) -> dict | None:
-    activo = get_activo()
+    activo = get_activo_por_id(activo_id)
     if not activo:
         return None
 

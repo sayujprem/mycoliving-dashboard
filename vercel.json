@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "main.py": {
+      "maxDuration": 120,
+      "excludeFiles": "{tests/**,scripts/**,.venv/**,respaldos/**,logs/**,.pytest_cache/**,__pycache__/**,**/__pycache__/**,*.db,*.bak,*.db.bak,requirements-dev.txt,plan.md,spec.md,ajustes-al-spec.md,evaluacion-negocio-producto.md}"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Cuenta eliminada · MyColiving{% endblock %}
+{% block content %}
+<section style="max-width:640px">
+  <span class="eyebrow">Cuenta</span>
+  <h1 style="font-size:clamp(26px,4vw,38px);margin:14px 0 18px">Cuenta eliminada</h1>
+  <div class="card" style="padding:clamp(20px,3vw,28px)">
+    <p style="margin:0">Borramos tu cuenta y todos sus datos de la plataforma.</p>
+    <p class="muted" style="margin:12px 0 0">Quedan en las copias de respaldo cifradas, que existen para recuperar la plataforma ante una falla. Se renuevan cada mes y la más antigua se elimina a los 12 meses. Nadie las consulta salvo para restaurar el servicio.</p>
+  </div>
+</section>
+{% endblock %}

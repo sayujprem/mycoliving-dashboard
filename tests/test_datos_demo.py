@@ -2,11 +2,9 @@
 from datetime import date
 
 import pytest
-from fastapi.testclient import TestClient
 
 from db.init_db import drop_all, init_db
 from db.repositorio import (
-    get_activo,
     get_capex,
     get_configuracion,
     get_recordatorios,
@@ -17,22 +15,22 @@ from dominio.configuracion import ventana_aviso
 from dominio.demo import cargar_demo, estado_demo, limpiar_demo, meses_demo
 from dominio.diagnostico import diagnostico_mes
 from dominio.recordatorios import clasificar_recordatorios
-from main import app
 from motor.recordatorios import AL_DIA, PROXIMO, VENCIDO
 from scripts.seed_coliving import seed
+from tests.apoyo import activo_actual, asegurar_usuario, nuevo_cliente
 
 
 @pytest.fixture
 def client():
     drop_all()
     init_db()
-    seed()
-    return TestClient(app)
+    seed(asegurar_usuario()["email"])
+    return nuevo_cliente()
 
 
 @pytest.fixture
 def activo_id(client):
-    return get_activo()["id"]
+    return activo_actual()["id"]
 
 
 def test_cargar_demo_deja_seis_meses(activo_id):
@@ -179,8 +177,8 @@ def test_el_banner_desaparece_tras_limpiar_desde_la_interfaz(client, activo_id):
 def test_seed_y_demo_conviven(activo_id):
     """El seed son datos de arranque real; la demo es movimiento de ejemplo."""
     cargar_demo(activo_id)
-    seed()  # idempotente: no debe pisar ni duplicar
-    assert get_activo()["id"] == activo_id
+    seed(asegurar_usuario()["email"])  # idempotente: no debe pisar ni duplicar
+    assert activo_actual()["id"] == activo_id
     assert len(get_reportes(activo_id)) == 6
 
 

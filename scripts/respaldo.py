@@ -1,44 +1,47 @@
-"""Respaldo mensual de la base de datos a Google Drive con rclone.
+"""Respaldo mensual de la base a Google Drive: pg_dump, cifrado con gpg y subida con rclone.
 
-Está en Python y no en shell por tres razones concretas:
+Corre en GitHub Actions (.github/workflows/respaldo.yml). Tambien se puede correr a mano
+con las mismas variables de entorno:  .venv/bin/python -m scripts.respaldo
 
-1. `sqlite3.Connection.backup()` produce un snapshot **consistente** aunque uvicorn esté
-   escribiendo. Un `cp` del .db a mitad de una transacción puede dar un archivo corrupto
-   que solo descubres el día que lo necesitas.
-2. Puede dejar el resultado escrito en la propia base, para que se vea en /config.
-3. Se puede testear: `ejecutar` es inyectable, así que la suite prueba todos los caminos
-   de fallo sin rclone instalado ni tocar la red.
+El principio de diseno es que **ningun eslabon falle en silencio**. Un `rclone copy`
+puede devolver 0 y no haber subido nada (cuota llena, token vencido), asi que despues de
+subir se verifica que el archivo este alla y que el tamano coincida.
 
-El principio de diseño es que **ningún eslabón falle en silencio**. Un `rclone copy` puede
-devolver 0 y no haber subido nada (cuota llena, token vencido), así que después de subir se
-verifica que el archivo esté allá y que el tamaño coincida.
+**El respaldo sale siempre cifrado.** Contiene los datos de todas las cuentas: correos,
+hashes de contrasenas y la informacion financiera de cada activo. Si falta la clave de
+cifrado, el respaldo falla; nunca se sube en claro.
 
-Correr a mano:  .venv/bin/python -m scripts.respaldo
+Variables:
+    DATABASE_URL_RESPALDO  conexion al *session pooler* de Supabase (puerto 5432).
+                           pg_dump no funciona por el transaction pooler que usa la app.
+    RESPALDO_CLAVE         frase para cifrar. Sin ella no hay forma de leer las copias:
+                           guardala tambien fuera de GitHub.
+    RESPALDO_REMOTO        destino en rclone. Por defecto "respaldos:mycoliving/": el
+                           remoto "respaldos" y, dentro, la carpeta "mycoliving", que
+                           rclone crea en la primera subida.
+
+Restaurar una copia:
+    gpg --decrypt mycoliving-AAAA-MM-DD.dump.gpg > copia.dump
+    pg_restore --no-owner --clean --if-exists -d "$DATABASE_URL_RESPALDO" copia.dump
+
+Esta en Python y no en shell para poder probarlo: `ejecutar` es inyectable, asi que la
+suite recorre todos los caminos de fallo sin pg_dump, gpg, rclone ni red.
 """
 from __future__ import annotations
 
 import os
 import re
 import shutil
-import sqlite3
 import subprocess
-import sys
+import tempfile
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from config import BASE_DIR, DB_PATH
-from db.repositorio import get_activo, set_configuracion
-
-REMOTO = "gdrive:"
+REMOTO = os.environ.get("RESPALDO_REMOTO", "respaldos:mycoliving/")
 CONSERVAR_EN_DRIVE = 12
-CONSERVAR_EN_LOCAL = 3
-DIR_RESPALDOS = BASE_DIR / "respaldos"
-DIR_LOGS = BASE_DIR / "logs"
-ARCHIVO_LOG = DIR_LOGS / "respaldo.log"
-CLAVE_ESTADO = "respaldo_ultimo"
 
-RE_RESPALDO = re.compile(r"^mycoliving-\d{4}-\d{2}-\d{2}\.db$")
+RE_RESPALDO = re.compile(r"^mycoliving-\d{4}-\d{2}-\d{2}\.dump\.gpg$")
 
 
 @dataclass(frozen=True)
@@ -51,7 +54,7 @@ class ResultadoRespaldo:
 
 
 def nombre_respaldo(dia: date) -> str:
-    return f"mycoliving-{dia.isoformat()}.db"
+    return f"mycoliving-{dia.isoformat()}.dump.gpg"
 
 
 def sobrantes(nombres: list[str], conservar: int = CONSERVAR_EN_DRIVE) -> list[str]:
@@ -63,89 +66,113 @@ def sobrantes(nombres: list[str], conservar: int = CONSERVAR_EN_DRIVE) -> list[s
     return propios[: len(propios) - conservar]
 
 
-def snapshot(destino: Path, origen: Path | None = None) -> None:
-    """Copia consistente de la base, segura aunque la app esté escribiendo."""
-    destino.parent.mkdir(parents=True, exist_ok=True)
-    fuente = sqlite3.connect(origen or DB_PATH)
-    try:
-        copia = sqlite3.connect(destino)
-        try:
-            fuente.backup(copia)
-        finally:
-            copia.close()
-    finally:
-        fuente.close()
-
-
-def _ejecutar_real(args: list[str]) -> tuple[int, str]:
+def _ejecutar_real(args: list[str], entrada: str | None = None) -> tuple[int, str]:
     """Un binario que no existe tiene que devolver un código, no reventar: si no, el
-    script muere con un traceback en vez del mensaje accionable, que es justo lo que
-    nadie va a leer cuando esto corra solo a las 9 de la noche."""
+    script muere con un traceback en vez del mensaje accionable."""
     try:
-        proceso = subprocess.run(args, capture_output=True, text=True)
+        proceso = subprocess.run(args, capture_output=True, text=True, input=entrada)
     except (FileNotFoundError, PermissionError, OSError) as exc:
         return 127, str(exc)
     return proceso.returncode, (proceso.stdout or "") + (proceso.stderr or "")
 
 
-def _localizar_rclone() -> str | None:
-    return os.environ.get("RCLONE_BIN") or shutil.which("rclone")
+def _binario(nombre: str) -> str | None:
+    return os.environ.get(f"{nombre.upper()}_BIN") or shutil.which(nombre)
 
 
 def respaldar(
     *,
-    rclone: str | None = None,
+    url: str | None = None,
+    clave: str | None = None,
     remoto: str = REMOTO,
     conservar: int = CONSERVAR_EN_DRIVE,
     hoy: date | None = None,
     ejecutar=None,
-    db_path: Path | None = None,
+    binarios: dict[str, str | None] | None = None,
+    directorio: Path | None = None,
 ) -> ResultadoRespaldo:
     hoy = hoy or date.today()
     correr = ejecutar or _ejecutar_real
-    binario = rclone if rclone is not None else _localizar_rclone()
+    # "respaldos:carpeta" y "respaldos:carpeta/" deben significar lo mismo; sin la barra,
+    # el nombre del archivo quedaria pegado al de la carpeta.
+    if not remoto.endswith((":", "/")):
+        remoto += "/"
+    raiz = remoto.split(":", 1)[0] + ":"
+    url = url if url is not None else os.environ.get("DATABASE_URL_RESPALDO", "")
+    clave = clave if clave is not None else os.environ.get("RESPALDO_CLAVE", "")
+    binarios = binarios if binarios is not None else {
+        b: _binario(b) for b in ("pg_dump", "gpg", "rclone")
+    }
 
-    if not binario:
+    # --- precondiciones: se comprueba todo antes de tocar nada -----------------
+    if not url:
+        return ResultadoRespaldo(ok=False, error="Falta DATABASE_URL_RESPALDO (session pooler, puerto 5432).")
+    if not clave:
         return ResultadoRespaldo(
             ok=False,
-            error="rclone no está instalado o no está en el PATH. Ver la sección de "
-                  "respaldo en el README.",
+            error="Falta RESPALDO_CLAVE. El respaldo contiene datos de todas las cuentas "
+                  "y no se sube sin cifrar.",
         )
+    for nombre in ("pg_dump", "gpg", "rclone"):
+        if not binarios.get(nombre):
+            return ResultadoRespaldo(ok=False, error=f"{nombre} no está instalado o no está en el PATH.")
+    pg_dump, gpg, rclone = binarios["pg_dump"], binarios["gpg"], binarios["rclone"]
 
-    codigo, salida = correr([binario, "listremotes"])
+    codigo, salida = correr([rclone, "listremotes"])
     if codigo == 127:
+        return ResultadoRespaldo(ok=False, error=f"No se pudo ejecutar rclone en '{rclone}': {salida[:150]}")
+    if codigo != 0 or raiz not in salida:
         return ResultadoRespaldo(
             ok=False,
-            error=f"No se pudo ejecutar rclone en '{binario}': {salida[:150]}",
-        )
-    if codigo != 0 or remoto not in salida:
-        return ResultadoRespaldo(
-            ok=False,
-            error=f"El remoto '{remoto.rstrip(':')}' no está configurado. Corre: rclone config",
+            error=f"El remoto '{raiz.rstrip(':')}' no está configurado en rclone.",
         )
 
-    # Valida que el token OAuth siga vivo antes de gastar tiempo copiando.
-    codigo, salida = correr([binario, "lsd", remoto])
+    # Valida que el token OAuth siga vivo antes de gastar tiempo volcando la base. Se
+    # lista la raiz y no la carpeta de destino: en la primera corrida esa carpeta aun no
+    # existe (la crea la subida) y el lsd fallaria como si el token estuviera vencido.
+    codigo, salida = correr([rclone, "lsd", raiz])
     if codigo != 0:
         return ResultadoRespaldo(
-            ok=False,
-            error=f"rclone no pudo abrir Drive (¿token vencido?): {salida.strip()[:200]}",
+            ok=False, error=f"rclone no pudo abrir Drive (¿token vencido?): {salida.strip()[:200]}"
         )
 
     nombre = nombre_respaldo(hoy)
-    local = DIR_RESPALDOS / nombre
-    snapshot(local, db_path)
-    tamano_local = local.stat().st_size
+    with tempfile.TemporaryDirectory(dir=directorio) as tmp:
+        volcado = Path(tmp) / "volcado.dump"
+        cifrado = Path(tmp) / nombre
 
-    codigo, salida = correr([binario, "copyto", str(local), f"{remoto}{nombre}"])
-    if codigo != 0:
-        return ResultadoRespaldo(
-            ok=False, nombre=nombre,
-            error=f"Falló la subida a Drive: {salida.strip()[:200]}",
+        # --- volcado -----------------------------------------------------------
+        # Formato custom: comprimido y restaurable por partes con pg_restore.
+        # Solo el esquema public: Supabase guarda en otros esquemas cosas suyas
+        # (auth, storage) que no son de esta aplicacion.
+        codigo, salida = correr([
+            pg_dump, "--format=custom", "--no-owner", "--no-privileges",
+            "--schema=public", f"--file={volcado}", url,
+        ])
+        if codigo != 0 or not volcado.exists() or volcado.stat().st_size == 0:
+            # La salida de pg_dump puede incluir la cadena de conexion; no se muestra.
+            return ResultadoRespaldo(ok=False, nombre=nombre, error="pg_dump no pudo volcar la base.")
+
+        # --- cifrado -----------------------------------------------------------
+        # La frase entra por stdin y no como argumento: los argumentos de un proceso
+        # los puede leer cualquier otro proceso de la maquina.
+        codigo, salida = correr(
+            [gpg, "--batch", "--yes", "--pinentry-mode", "loopback", "--passphrase-fd", "0",
+             "--symmetric", "--cipher-algo", "AES256", "--output", str(cifrado), str(volcado)],
+            entrada=clave,
         )
+        volcado.unlink(missing_ok=True)  # la copia en claro no sobrevive al cifrado
+        if codigo != 0 or not cifrado.exists():
+            return ResultadoRespaldo(ok=False, nombre=nombre, error=f"gpg no pudo cifrar el volcado: {salida.strip()[:200]}")
+        tamano_local = cifrado.stat().st_size
+
+        # --- subida y verificacion ---------------------------------------------
+        codigo, salida = correr([rclone, "copyto", str(cifrado), f"{remoto}{nombre}"])
+        if codigo != 0:
+            return ResultadoRespaldo(ok=False, nombre=nombre, error=f"Falló la subida a Drive: {salida.strip()[:200]}")
 
     # El paso que impide el fallo silencioso: un copy con código 0 no garantiza nada.
-    codigo, salida = correr([binario, "lsf", remoto, "--include", nombre])
+    codigo, salida = correr([rclone, "lsf", remoto, "--include", nombre])
     if codigo != 0 or nombre not in salida:
         return ResultadoRespaldo(
             ok=False, nombre=nombre,
@@ -153,7 +180,7 @@ def respaldar(
                   "no aparece en el destino.",
         )
 
-    codigo, salida = correr([binario, "size", f"{remoto}{nombre}", "--json"])
+    codigo, salida = correr([rclone, "size", f"{remoto}{nombre}", "--json"])
     if codigo == 0:
         encontrado = re.search(r'"bytes"\s*:\s*(\d+)', salida)
         if encontrado and int(encontrado.group(1)) != tamano_local:
@@ -164,69 +191,27 @@ def respaldar(
             )
 
     rotados = 0
-    codigo, salida = correr([binario, "lsf", remoto, "--include", "mycoliving-*.db"])
+    codigo, salida = correr([rclone, "lsf", remoto, "--include", "mycoliving-*.dump.gpg"])
     if codigo == 0:
-        for viejo in sobrantes([l.strip() for l in salida.splitlines()], conservar):
-            if correr([binario, "deletefile", f"{remoto}{viejo}"])[0] == 0:
+        for viejo in sobrantes([linea.strip() for linea in salida.splitlines()], conservar):
+            if correr([rclone, "deletefile", f"{remoto}{viejo}"])[0] == 0:
                 rotados += 1
 
-    _rotar_local()
     return ResultadoRespaldo(ok=True, nombre=nombre, subidos=1, rotados=rotados)
-
-
-def _rotar_local() -> None:
-    if not DIR_RESPALDOS.exists():
-        return
-    propios = sorted(p for p in DIR_RESPALDOS.iterdir() if RE_RESPALDO.match(p.name))
-    for viejo in propios[:-CONSERVAR_EN_LOCAL] if len(propios) > CONSERVAR_EN_LOCAL else []:
-        viejo.unlink(missing_ok=True)
-
-
-def registrar_estado(resultado: ResultadoRespaldo, hoy: date | None = None) -> str:
-    """Deja el resultado donde el usuario ya mira: la pantalla de configuración.
-
-    Una notificación de macOS se pierde; una línea en /config, no.
-    """
-    hoy = hoy or date.today()
-    if resultado.ok:
-        texto = f"{hoy.isoformat()} · ok"
-        if resultado.rotados:
-            texto += f" · {resultado.rotados} copias viejas eliminadas"
-    else:
-        texto = f"{hoy.isoformat()} · ERROR: {resultado.error}"
-
-    activo = get_activo()
-    if activo:
-        set_configuracion(activo["id"], CLAVE_ESTADO, texto)
-    return texto
-
-
-def _log(texto: str) -> None:
-    DIR_LOGS.mkdir(parents=True, exist_ok=True)
-    with ARCHIVO_LOG.open("a", encoding="utf-8") as f:
-        f.write(texto + "\n")
-
-
-def _avisar(mensaje: str) -> None:
-    try:
-        subprocess.run(
-            ["osascript", "-e",
-             f'display notification "{mensaje[:180]}" with title "MyColiving: falló el respaldo"'],
-            capture_output=True,
-        )
-    except Exception:
-        pass  # el aviso es un extra; el registro en /config y el log son lo que manda
 
 
 def main() -> int:
     resultado = respaldar()
-    texto = registrar_estado(resultado)
-    _log(texto)
-    print(texto)
-    if not resultado.ok:
-        _avisar(resultado.error or "error desconocido")
-        return 2
-    return 0
+    if resultado.ok:
+        texto = f"{date.today().isoformat()} · ok · {resultado.nombre}"
+        if resultado.rotados:
+            texto += f" · {resultado.rotados} copias viejas eliminadas"
+        print(texto)
+        return 0
+    # En GitHub Actions un codigo distinto de cero marca el job en rojo y GitHub avisa
+    # por correo. Ese es el aviso: no hace falta otro.
+    print(f"{date.today().isoformat()} · ERROR: {resultado.error}")
+    return 2
 
 
 if __name__ == "__main__":

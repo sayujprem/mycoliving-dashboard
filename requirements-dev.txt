@@ -1,0 +1,4 @@
+# Desarrollo y pruebas. No se despliega.
+-r requirements.txt
+pytest>=8.0
+httpx>=0.27    # lo usa el TestClient de las pruebas
