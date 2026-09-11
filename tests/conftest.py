@@ -28,7 +28,7 @@ if "test" not in _URL_TEST.rsplit("/", 1)[-1]:
 os.environ["DATABASE_URL"] = _URL_TEST
 os.environ["SESSION_SECRET"] = "clave-de-pruebas-no-usar-en-produccion"
 os.environ["MYCOLIVING_ENTORNO"] = "pruebas"
-os.environ["SMTP_CLAVE"] = ""
+os.environ["GMAIL_OAUTH"] = ""
 
 # La suite es hermética: no gasta créditos del API. Para ejercitar la corrida real de
 # asesoría, correr con:  MYCOLIVING_TEST_REAL_API=1 pytest -k corrida_real

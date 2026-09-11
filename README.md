@@ -46,7 +46,7 @@ distintos en cada cambio.
 |---|---|---|
 | Aplicación (FastAPI + Jinja2) | Vercel, plan Hobby | $0 |
 | Base de datos (PostgreSQL 17) | Supabase, plan Free | $0 |
-| Correo de verificación | SMTP de Gmail | $0 hasta ~500/día |
+| Correo de verificación | API de Gmail | $0 hasta ~500/día |
 | Respaldo y mantenimiento | GitHub Actions | $0 en repos públicos |
 | Asesoría con IA | API de Anthropic, `claude-sonnet-5` | ~0,05 USD por informe |
 
@@ -70,7 +70,7 @@ python -m db.init_db
 uvicorn main:app --reload
 ```
 
-Abrir http://127.0.0.1:8000 y crear una cuenta. Sin `SMTP_CLAVE`, el enlace de
+Abrir http://127.0.0.1:8000 y crear una cuenta. Sin `GMAIL_OAUTH`, el enlace de
 verificación no se envía: aparece en la terminal donde corre uvicorn.
 
 `scripts/pg_local.sh` descarga los binarios oficiales de PostgreSQL a `.pg/` (ignorada por
@@ -100,10 +100,15 @@ Una sola vez:
    transaction pooler.
 2. **Esquema.** `DATABASE_URL=<session pooler> python -m db.init_db`. Es idempotente: se
    puede volver a correr tras cada cambio del esquema.
-3. **Correo.** En la cuenta de Gmail que envía (`privacidad.mycoliving@gmail.com`), activar
-   la verificación en dos pasos y crear una **contraseña de aplicación** en
-   myaccount.google.com/apppasswords. Esa contraseña, no la de la cuenta, va en
-   `SMTP_CLAVE`.
+3. **Correo.** La aplicación envía por la API de Gmail con un permiso OAuth, no por SMTP
+   con contraseña: Google bloquea como sospechoso el inicio de sesión por SMTP de una
+   cuenta nueva desde servidores en la nube. En Google Cloud, habilitar la **Gmail API**,
+   agregar el permiso `gmail.send`, publicar la app y crear un cliente OAuth de tipo
+   **App de escritorio**. Con su JSON descargado:
+   `python -m scripts.autorizar_gmail --credenciales ~/Downloads/client_secret_….json`.
+   El script pide la autorización, envía un correo de prueba y deja `GMAIL_OAUTH` en el
+   portapapeles. Si algún día Google revoca el permiso (por ejemplo, al cambiar la
+   contraseña de la cuenta), el registro de Vercel lo dice y basta con volver a correrlo.
 4. **Anthropic.** Crear una API key exclusiva para producción y fijar un **tope de gasto
    mensual** en la consola (*Settings → Limits*). Con la asesoría habilitada cuenta por
    cuenta, 5 USD al mes alcanzan para unos 100 informes.
@@ -117,8 +122,7 @@ Una sola vez:
    | `SESSION_SECRET` | `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
    | `MYCOLIVING_ENTORNO` | `produccion` (activa la cookie `Secure` y HSTS) |
    | `APP_URL` | la URL pública, sin barra final |
-   | `SMTP_USUARIO` | `privacidad.mycoliving@gmail.com` |
-   | `SMTP_CLAVE` | la contraseña de aplicación de Google |
+   | `GMAIL_OAUTH` | el que genera `scripts/autorizar_gmail.py` |
    | `ANTHROPIC_API_KEY` | la de producción |
    | `ANTHROPIC_WORKSPACE_ID` | solo si la key pertenece a un workspace |
 
