@@ -88,16 +88,19 @@ MODELO_ASESORIA = os.environ.get("MYCOLIVING_MODELO", "claude-sonnet-5")
 ANTHROPIC_TIMEOUT = int(os.environ.get("MYCOLIVING_TIMEOUT", "100"))
 
 
-# --- Correo (SMTP de Gmail) --------------------------------------------------
+# --- Correo (API de Gmail) ---------------------------------------------------
 
 # Cuenta que envia los correos de verificacion y recuperacion. Es la misma que figura
-# como contacto de privacidad, asi que las respuestas de los usuarios llegan ahi.
-SMTP_USUARIO = os.environ.get("SMTP_USUARIO", "privacidad.mycoliving@gmail.com").strip()
+# como contacto de privacidad, asi que las respuestas de los usuarios llegan ahi. Debe
+# ser la cuenta que autorizo el permiso de GMAIL_OAUTH: Gmail no deja enviar como otra.
+CORREO_REMITENTE = os.environ.get("CORREO_REMITENTE", "privacidad.mycoliving@gmail.com").strip()
 
-# Contrasena de aplicacion de Google (16 letras), no la contrasena de la cuenta. Se
-# crea en myaccount.google.com/apppasswords y exige la verificacion en dos pasos. Google
-# la muestra en grupos de cuatro separados por espacios; los espacios se descartan.
-SMTP_CLAVE = os.environ.get("SMTP_CLAVE", "").replace(" ", "")
+# Permiso OAuth para enviar por la API de Gmail: un JSON con client_id, client_secret y
+# refresh_token. Lo genera scripts/autorizar_gmail.py. Se usa la API y no SMTP con
+# contrasena de aplicacion porque Google bloquea como sospechoso el inicio de sesion por
+# SMTP de una cuenta nueva desde servidores en la nube; un permiso OAuth no es un inicio
+# de sesion y no dispara ese bloqueo.
+GMAIL_OAUTH = os.environ.get("GMAIL_OAUTH", "").strip()
 
 # Correo de la cuenta que se marca como administradora al migrar los datos iniciales.
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "").strip().lower()
