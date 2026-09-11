@@ -64,3 +64,22 @@ def test_todas_las_tablas_tienen_rls(conn):
         "WHERE n.nspname = 'public' AND c.relkind = 'r' AND NOT c.relrowsecurity"
     ).fetchall()
     assert [f["relname"] for f in sin_rls] == []
+
+
+def test_toda_funcion_fija_su_search_path(conn):
+    """Sin search_path fijo, una funcion resuelve nombres segun quien la llama y un objeto
+    homonimo en otro esquema podria suplantar al nuestro. El asesor de seguridad de
+    Supabase lo marca como function_search_path_mutable."""
+    funciones = conn.execute(
+        """
+        SELECT p.proname, p.proconfig
+        FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.prokind = 'f'
+        """
+    ).fetchall()
+    assert funciones, "no se encontraron funciones en public"
+    sin_fijar = [
+        f["proname"] for f in funciones
+        if not any(c.startswith("search_path=") for c in (f["proconfig"] or []))
+    ]
+    assert sin_fijar == [], f"funciones sin search_path fijo: {sin_fijar}"

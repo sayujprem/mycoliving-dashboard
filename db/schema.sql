@@ -8,6 +8,11 @@
 --   - Dinero y saldos en NUMERIC(14,2); porcentajes en NUMERIC(6,3). Nunca punto flotante.
 --   - Fechas de calendario en DATE; marcas de tiempo del sistema en TIMESTAMPTZ.
 --   - Los identificadores son BIGINT GENERATED ALWAYS AS IDENTITY.
+--   - Toda funcion fija `SET search_path = public, pg_temp`. Sin eso, busca tablas y
+--     funciones en el search_path de quien la llama, y un objeto con el mismo nombre en
+--     otro esquema podria suplantar al nuestro. app_usuario_id() sostiene todas las
+--     politicas de aislamiento: no puede depender de eso. pg_temp va al final para
+--     que tampoco se pueda suplantar nada desde el esquema temporal de la sesion.
 --
 -- El aislamiento entre cuentas se defiende en dos capas: la aplicacion filtra por
 -- activo_id (resuelto desde la sesion, nunca desde el cliente) y la base aplica RLS
@@ -262,7 +267,7 @@ BEGIN
 
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public, pg_temp;
 
 DROP TRIGGER IF EXISTS trg_reporte_unidad_ocupacion_insert ON reporte_unidad;
 CREATE TRIGGER trg_reporte_unidad_ocupacion_insert
@@ -286,7 +291,7 @@ BEGIN
     DELETE FROM intento_acceso WHERE ts < now() - INTERVAL '1 day';
     DELETE FROM token_email    WHERE expira_en < now() - INTERVAL '7 days';
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public, pg_temp;
 
 
 -- ---------------------------------------------------------------------------
@@ -326,7 +331,7 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO mycoliving_app;
 -- El segundo argumento (missing_ok) evita que reviente cuando no hay sesion.
 CREATE OR REPLACE FUNCTION app_usuario_id() RETURNS BIGINT AS $$
     SELECT nullif(current_setting('app.usuario_id', true), '')::BIGINT;
-$$ LANGUAGE sql STABLE;
+$$ LANGUAGE sql STABLE SET search_path = public, pg_temp;
 
 ALTER TABLE activo                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contrato_maestro      ENABLE ROW LEVEL SECURITY;
